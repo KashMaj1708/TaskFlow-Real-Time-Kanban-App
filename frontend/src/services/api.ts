@@ -1,0 +1,59 @@
+import { useAuthStore } from '../store/authStore';
+
+// Helper to get the token from the Zustand store
+const getAuthToken = () => {
+  return useAuthStore.getState().token;
+};
+
+// Base function for fetch with auth
+const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  const headers = new Headers(options.headers || {
+    'Content-Type': 'application/json',
+  });
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  // Handle case where response might be empty (e.g., DELETE)
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  // For 200 OK on DELETE, just return a success object
+  if (response.ok) {
+    return { success: true, status: response.status };
+  }
+  return response.json(); // Let it return the error JSON
+};
+
+// Our new API client object
+export const api = {
+  get: async (url: string) => {
+    return fetchWithAuth(url, { method: 'GET' });
+  },
+
+  post: async (url: string, body: unknown) => {
+    return fetchWithAuth(url, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  put: async (url: string, body: unknown) => {
+    return fetchWithAuth(url, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  },
+
+  delete: async (url: string) => {
+    return fetchWithAuth(url, { method: 'DELETE' });
+  },
+};
