@@ -1,100 +1,106 @@
-import { useEffect } from 'react';
-import { useAuth } from '../../hooks/useAuth';
-import { useBoardStore } from '../../store/boardStore';
-import { api } from '../../services/api';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { api } from '../../services/api';
+import { type Board } from '../../types';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import Navbar from '../../components/layout/Navbar'; // <-- IMPORT OUR NEW NAVBAR
 
-type CreateBoardForm = {
+interface CreateBoardForm {
   title: string;
-};
+}
 
 const DashboardPage = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const { boards, setBoards, addBoard } = useBoardStore();
   const { register, handleSubmit, reset } = useForm<CreateBoardForm>();
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch boards on mount
-  useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const response = await api.get('/api/boards');
-        if (response.success) {
-          setBoards(response.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch boards:', error);
-      }
-    };
-    fetchBoards();
-  }, [setBoards]);
-
-  // Handle create board
-  const onSubmit = async (data: CreateBoardForm) => {
+  // (This logic is the same as before)
+  const fetchBoards = async () => {
     try {
-      const response = await api.post('/api/boards', { title: data.title });
-      if (response.success) {
-        addBoard(response.data); // Add to local state
-        reset(); // Clear form
-        navigate(`/board/${response.data.id}`); // Navigate to new board
-      } else {
-        alert(response.message || 'Failed to create board');
+      const res = await api.get('/api/boards');
+      if (res.success) {
+        setBoards(res.data);
       }
-    } catch (error) {
-      console.error('Failed to create board:', error);
+    } catch (err) {
+      setError('Failed to fetch boards.');
+      console.error(err);
     }
   };
 
+  useEffect(() => {
+    fetchBoards();
+  }, []);
+
+  const onSubmit = async (data: CreateBoardForm) => {
+    try {
+      const res = await api.post('/api/boards', data);
+      if (res.success) {
+        setBoards([res.data, ...boards]);
+        reset();
+      }
+    } catch (err) {
+      setError('Failed to create board.');
+      console.error(err);
+    }
+  };
+
+  // --- NEW LAYOUT STARTS HERE ---
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">
-          Welcome, {user?.username}!
-        </h1>
-        <Button onClick={logout} variant="danger">
-          Log Out
-        </Button>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <Navbar /> {/* <-- ADDED NAVBAR */}
 
-      {/* Create New Board Form */}
-      <div className="mb-8 p-4 bg-neutral-800 rounded-lg">
-        <h2 className="text-2xl font-semibold mb-4">Create a New Board</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex space-x-4">
-          <Input
-            placeholder="New board title..."
-            registration={register('title', { required: true, minLength: 3 })}
-            className="flex-grow"
-          />
-          <Button type="submit" variant="primary">
-            Create
-          </Button>
-        </form>
-      </div>
+      {/* Page Content Container */}
+      <div className="container mx-auto p-8 max-w-5xl">
 
-      {/* Board List */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Your Boards</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Create Board Section */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            Create a New Board
+          </h2>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col sm:flex-row gap-4">
+            <Input
+              placeholder="New board title..."
+              registration={register('title', { required: true })}
+              className="flex-grow"
+            />
+            <Button type="submit" variant="primary">
+              Create
+            </Button>
+          </form>
+          {error && <p className="text-red-500 mt-2">{error}</p>}
+        </div>
+
+        {/* Your Boards Section */}
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+            Your Boards
+          </h2>
           {boards.length > 0 ? (
-            boards.map((board) => (
-              <Link
-                to={`/board/${board.id}`}
-                key={board.id}
-                className="block p-6 bg-neutral-700 rounded-lg shadow hover:bg-neutral-600 transition-colors"
-              >
-                <h3 className="text-xl font-bold">{board.title}</h3>
-                <p className="text-neutral-300">
-                  {board.description || 'No description'}
-                </p>
-              </Link>
-            ))
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {boards.map((board) => (
+                <Link
+                  to={`/board/${board.id}`}
+                  key={board.id}
+                  className="block bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                >
+                  <h3 className="text-xl font-bold text-blue-600 mb-2">
+                    {board.title}
+                  </h3>
+                  <p className="text-gray-600">
+                    {board.description || 'No description'}
+                  </p>
+                </Link>
+              ))}
+            </div>
           ) : (
-            <p className="text-neutral-400">You don't have any boards yet.</p>
+            <div className="bg-white p-6 rounded-lg shadow-md text-center">
+              <p className="text-gray-500">You haven't created any boards yet.</p>
+            </div>
           )}
         </div>
+
       </div>
     </div>
   );

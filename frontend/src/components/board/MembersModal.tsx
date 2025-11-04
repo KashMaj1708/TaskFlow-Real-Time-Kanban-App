@@ -79,7 +79,7 @@ const MembersModal: React.FC<MembersModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center" onClick={onClose}>
-      <div className="bg-neutral-800 p-6 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold">Manage Members</h2>
           <button onClick={onClose} className="text-neutral-400 hover:text-white">
@@ -101,7 +101,7 @@ const MembersModal: React.FC<MembersModalProps> = ({ onClose }) => {
           {loading && <p className="text-neutral-400 mt-2">Searching...</p>}
           <div className="mt-2 max-h-40 overflow-y-auto">
             {results.map((user) => (
-              <div key={user.id} className="flex justify-between items-center p-2 hover:bg-neutral-700 rounded">
+             <div key={user.id} className="flex justify-between items-center p-2 hover:bg-gray-100 rounded">
                 <div>
                   <p className="font-medium">{user.username}</p>
                   <p className="text-sm text-neutral-400">{user.email}</p>
@@ -117,7 +117,7 @@ const MembersModal: React.FC<MembersModalProps> = ({ onClose }) => {
           <h3 className="text-lg font-medium mb-2">Board Members</h3>
           <div className="space-y-2">
             {activeBoard?.members.map((member) => (
-              <div key={member.id} className="flex justify-between items-center p-2 bg-neutral-700 rounded">
+              <div key={member.id} className="flex justify-between items-center p-2 bg-gray-100 rounded">
                 <div>
                   <p className="font-medium">
                     {member.username} {member.id === currentUser?.id && '(You)'}

@@ -6,8 +6,10 @@ import Column from './Column';
 import { useForm } from 'react-hook-form';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { ArrowLeft, Plus, Users } from 'lucide-react'; // Import Users
-
+import { ArrowLeft, Plus, Users, LayoutDashboard, Filter } from 'lucide-react'; // Import Users
+import { useAuth } from '../../hooks/useAuth';
+import Avatar from '../../components/ui/Avatar';
+import CardDetailsModal from '../../components/board/CardDetailsModal';
 // --- DND IMPORTS ---
 import {
   DndContext,
@@ -45,10 +47,11 @@ type ActiveDragType = {
 };
 
 const BoardPage = () => {
+    const { user } = useAuth();
   const { boardId } = useParams<{ boardId: string }>();
   // --- UPDATE THIS LINE to include all store actions ---
   const { activeBoard, setActiveBoard, addColumn, moveColumn, moveCard,
-          addCard, deleteCard, deleteColumn, addMember, removeMember } = useBoardStore();
+          addCard, deleteCard, deleteColumn, addMember, removeMember, syncMovedColumn, syncMovedCard, updateCard } = useBoardStore();
           
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +59,18 @@ const BoardPage = () => {
 
   // --- ADD THIS STATE ---
   const [showMembersModal, setShowMembersModal] = useState(false);
-
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const { register, handleSubmit, reset } = useForm<CreateColumnForm>();
 
   // DND Sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      // Require the mouse to move 5px before activating a drag
+      // This prevents a simple click from being treated as a drag
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -116,9 +125,12 @@ const BoardPage = () => {
       deleteColumn(data.columnId);
     });
 
-    socketService.listen('column:moved', (data: any) => {
-      // We'll implement this properly later
-    });
+    socketService.listen('column:moved', (data: { columnId: number, newPosition: number, movedBy: number }) => {
+        // Only apply update if you are not the one who moved it
+        if (data.movedBy !== user?.id) {
+          syncMovedColumn(data.columnId, data.newPosition);
+        }
+      });
 
     socketService.listen('card:created', (data: Card) => {
       addCard(data);
@@ -126,15 +138,19 @@ const BoardPage = () => {
 
     socketService.listen('card:updated', (data: Card) => {
       // We'll implement this in Phase 6
+      updateCard(data);
     });
 
     socketService.listen('card:deleted', (data: { cardId: number, columnId: number }) => {
       deleteCard(data.cardId, data.columnId);
     });
 
-    socketService.listen('card:moved', (data: any) => {
-      // We'll implement this properly later
-    });
+    socketService.listen('card:moved', (data: { cardId: number, oldColumnId: number, newColumnId: number, newPosition: number, movedBy: number }) => {
+        // Only apply update if you are not the one who moved it
+        if (data.movedBy !== user?.id) {
+          syncMovedCard(data.cardId, data.oldColumnId, data.newColumnId, data.newPosition);
+        }
+      });
     
     // --- Phase 5 Socket Events ---
     socketService.listen('board:member:added', (data: BoardMember) => {
@@ -161,11 +177,10 @@ const BoardPage = () => {
       socketService.removeListener('card:moved');
       socketService.removeListener('board:member:added');
       socketService.removeListener('board:member:removed');
-      
-      socketService.disconnect();
+     
     };
     // Add all store actions to dependency array
-  }, [boardId, addColumn, addCard, deleteCard, deleteColumn, addMember, removeMember]);
+  }, [boardId, addColumn, addCard, deleteCard, deleteColumn, addMember, removeMember, syncMovedColumn, syncMovedCard, updateCard, user?.id]);
   // --- END SOCKET useEffect ---
 
   // Create Column
@@ -256,8 +271,10 @@ const BoardPage = () => {
       const oldIndex = activeBoard?.columns.findIndex(c => c.id === activeId) ?? 0;
       const newIndex = activeBoard?.columns.findIndex(c => c.id === overId) ?? 0;
       
+      // Update local state
       moveColumn(oldIndex, newIndex);
       
+      // Call API
       api.put(`/api/columns/${activeId}/move`, { newPosition: newIndex })
          .catch(err => console.error("Failed to move column", err));
     }
@@ -268,11 +285,13 @@ const BoardPage = () => {
       const overIsColumn = over.data.current?.type === 'Column';
       
       let endColumnId: number;
-      let newIndex: number;
+      let newIndex: number; // The new position in the *end* column
 
       if (overIsColumn) {
         endColumnId = overId;
-        newIndex = 0; 
+        // If dropping on an empty column, the new index is 0
+        const endColCards = activeBoard?.columns.find(c => c.id === endColumnId)?.cards;
+        newIndex = endColCards ? endColCards.length : 0;
       } else if (overIsCard) {
         endColumnId = over.data.current?.columnId;
         newIndex = activeBoard?.columns.find(c => c.id === endColumnId)?.cards.findIndex(c => c.id === overId) ?? 0;
@@ -281,19 +300,28 @@ const BoardPage = () => {
         return;
       }
       
+      // Check if startColumnId is defined
       if (startColumnId === undefined) {
         console.error("Drag start column ID is undefined for a card.");
         setActiveDrag(null);
         return;
       }
-
-      if (startColumnId === endColumnId) {
-        const oldIndex = activeBoard?.columns.find(c => c.id === startColumnId)?.cards.findIndex(c => c.id === activeId) ?? 0;
-        moveCard(activeId, startColumnId, endColumnId, oldIndex, newIndex);
-      }
       
+      // Find the card's original index in its starting column
+      const oldIndex = activeBoard?.columns
+        .find(c => c.id === startColumnId)
+        ?.cards.findIndex(c => c.id === activeId) ?? 0;
+
+      // --- THIS IS THE FIX ---
+      // We removed the `if (startColumnId === endColumnId)` check.
+      // This *one* call will optimistically update the state for BOTH
+      // same-column and cross-column moves.
+      moveCard(activeId, startColumnId, endColumnId, oldIndex, newIndex);
+      // --- END FIX ---
+      
+      // Call API
       api.put(`/api/cards/${activeId}/move`, { newColumnId: endColumnId, newPosition: newIndex })
-         .catch(err => console.error("Failed to move card", err)); 
+         .catch(err => console.error("Failed to move card", err));
     }
 
     setActiveDrag(null);
@@ -313,21 +341,36 @@ const BoardPage = () => {
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col h-screen p-4 gap-4">
-        {/* Board Header */}
+      <div className="flex flex-col h-screen p-4 gap-4 text-neutral-900">
+        
+        {/* Board Header (This is the updated block) */}
         <div className="flex-shrink-0 flex justify-between items-center px-4">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-neutral-400 hover:text-white">
+          {/* Left Side */}
+          <div className="flex items-center gap-2">
+            <Link to="/" className="text-neutral-400 hover:text-white" title="Back to Dashboard">
               <ArrowLeft size={24} />
             </Link>
-            <h1 className="text-3xl font-bold">{activeBoard.title}</h1>
+            <h1 className="text-2xl font-bold">{activeBoard.title}</h1>
+            <Button variant="ghost" className="text-neutral-400">
+              <LayoutDashboard size={16} className="mr-2" /> Customize
+            </Button>
+            <Button variant="ghost" className="text-neutral-400">
+              <Filter size={16} className="mr-2" /> Show: All
+            </Button>
           </div>
           
-          {/* --- ADD THIS BUTTON --- */}
+          {/* Right Side */}
           <div className="flex items-center gap-4">
+            {/* Member Avatars */}
+            <div className="flex -space-x-2">
+              {activeBoard.members.map((member) => (
+                <Avatar key={member.id} user={member} size="md" />
+              ))}
+            </div>
+            
+            {/* Members Button */}
             <Button 
               variant="secondary" 
               className="flex items-center gap-2"
@@ -337,19 +380,25 @@ const BoardPage = () => {
               Members
             </Button>
           </div>
-          {/* --- END ADD --- */}
         </div>
 
         {/* Board Canvas (Scrollable) */}
         <div className="flex-grow flex gap-4 overflow-x-auto pb-4">
           <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
             {sortedColumns.map((col) => (
-              <Column key={col.id} column={col} />
+              <Column 
+                key={col.id} 
+                column={col} 
+                onCardClick={(card) => {
+                  console.log('BoardPage heard click from column:', card.id);
+                  setSelectedCard(card);
+                }}
+              />
             ))}
           </SortableContext>
           
           {/* Add New Column Form */}
-          <div className="flex-shrink-0 w-72 p-2 bg-neutral-800 rounded-lg h-fit">
+          <div className="flex-shrink-0 w-72 p-2 bg-gray-200 rounded-lg h-fit">
             <form onSubmit={handleSubmit(onCreateColumn)} className="flex flex-col gap-2">
               <Input
                 placeholder="Enter column title..."
@@ -363,11 +412,17 @@ const BoardPage = () => {
         </div>
       </div>
       
-      {/* --- ADD THIS MODAL --- */}
+      {/* Modals */}
       {showMembersModal && (
         <MembersModal onClose={() => setShowMembersModal(false)} />
       )}
-      {/* --- END ADD --- */}
+      
+      {selectedCard && (
+        <CardDetailsModal 
+          card={selectedCard}
+          onClose={() => setSelectedCard(null)}
+        />
+      )}
     </DndContext>
   );
 };

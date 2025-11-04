@@ -1,31 +1,23 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AuthRequest, UserPayload } from '../utils/types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this';
-
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: 'No token, authorization denied' });
-  }
-  
-  const token = authHeader.split(' ')[1];
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies.token;
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'No token, authorization denied' });
+    return res.status(401).json({ success: false, message: 'Unauthorized: No token provided' });
   }
 
   try {
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as UserPayload;
+    // Verify the token and get the payload
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     
-    // Add user from payload to request object
-    req.user = decoded;
+    // Attach the payload (which should be { id: ..., username: ... }) to the request
+    (req as any).user = decoded; 
     
+    // Continue to the next function (the controller)
     next();
   } catch (err) {
-    res.status(401).json({ success: false, message: 'Token is not valid' });
+    return res.status(401).json({ success: false, message: 'Unauthorized: Invalid token' });
   }
 };

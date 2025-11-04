@@ -1,33 +1,24 @@
-import { Response } from 'express';
-import pool from '../db';
-import { AuthRequest } from '../utils/types';
+import { Request, Response } from 'express';
+import db from '../db';
 
-/**
- * @route   GET /api/users/search
- * @desc    Search for users by username or email
- */
-export const searchUsers = async (req: AuthRequest, res: Response) => {
-  const { query } = req.query;
-  const currentUserId = req.user?.userId;
-
-  if (!query || typeof query !== 'string') {
-    return res.status(400).json({ success: false, message: 'Search query is required' });
-  }
-
+export const searchUsers = async (req: Request, res: Response) => {
   try {
-    // Search for users who are NOT the current user
-    // We use ILIKE for case-insensitive search
-    const users = await pool.query(
-      "SELECT id, username, email, avatar_color FROM users WHERE (username ILIKE $1 OR email ILIKE $1) AND id != $2 LIMIT 10",
-      [`%${query}%`, currentUserId]
-    );
+    const { query } = req.query;
+    const currentUserId = (req as any).user.id;
+    
+    if (!query || typeof query !== 'string') {
+      return res.json({ success: true, data: [] });
+    }
 
-    res.status(200).json({
-      success: true,
-      data: users.rows,
-    });
+    const users = await db('users')
+      .where('email', 'like', `%${query}%`)
+      .andWhereNot('id', currentUserId) // Don't include self
+      .select('id', 'username', 'email', 'avatar_color')
+      .limit(5);
+      
+    res.json({ success: true, data: users });
   } catch (err) {
-    console.error('SearchUsers Error:', (err as Error).message);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Error searching users' });
   }
 };

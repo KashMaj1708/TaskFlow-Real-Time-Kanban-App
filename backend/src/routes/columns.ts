@@ -1,46 +1,18 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/authMiddleware';
-import { validateColumnId, validateColumn, validateCard, validateColumnMove } from '../middleware/validationMiddleware';
-import { checkColumnPermission } from '../middleware/permissionMiddleware';
 import {
-  updateColumn,
+  createColumn,
   deleteColumn,
-  moveColumn
+  updateColumnOrder,
+  updateCardOrder,
 } from '../controllers/columnController';
-import { createCard } from '../controllers/cardController';
-const router = Router();
+import { authMiddleware } from '../middleware/authMiddleware';
 
-// All routes in this file are protected
+const router = Router();
 router.use(authMiddleware);
 
-// These routes operate on a specific column, so we check permission
-router.put(
-    '/:columnId/move',
-    validateColumnId,
-    validateColumnMove,
-    checkColumnPermission, // This attaches boardId to req
-    moveColumn
-  );
-router.post(
-    '/:columnId/cards',
-    validateColumnId,
-    validateCard,
-    checkColumnPermission, // Checks if user is member of board for :columnId
-    createCard
-  );
-router.put(
-  '/:columnId',
-  validateColumnId,
-  validateColumn,
-  checkColumnPermission,
-  updateColumn
-);
-
-router.delete(
-  '/:columnId',
-  validateColumnId,
-  checkColumnPermission,
-  deleteColumn
-);
+router.post('/board/:boardId', createColumn);
+router.delete('/:columnId', deleteColumn);
+router.put('/board/:boardId/order', updateColumnOrder);
+router.put('/board/:boardId/cards/order', updateCardOrder);
 
 export default router;

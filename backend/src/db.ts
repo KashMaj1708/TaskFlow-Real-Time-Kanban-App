@@ -1,19 +1,18 @@
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
+import knex from 'knex';
+import pg from 'pg';
 
-dotenv.config();
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+// This fixes a common issue with how PostgreSQL timestamps are parsed
+pg.types.setTypeParser(1114, (stringValue) => {
+  return new Date(stringValue + 'Z');
 });
 
-// Test the connection
-pool.connect((err, client, release) => {
-  if (err) {
-    return console.error('Error acquiring client', err.stack);
-  }
-  console.log('Database connected successfully');
-  client.release();
+const db = knex({
+  client: 'pg',
+  // --- THIS IS THE FIX ---
+  // Use the DATABASE_URL string directly
+  connection: process.env.DATABASE_URL,
+  // --- END FIX ---
+  pool: { min: 2, max: 10 },
 });
 
-export default pool;
+export default db;

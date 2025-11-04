@@ -5,13 +5,15 @@ import { CSS } from '@dnd-kit/utilities';
 import { Trash2 } from 'lucide-react';
 import { useBoardStore } from '../../store/boardStore';
 import { api } from '../../services/api';
-
+import { CalendarDays, CheckSquare, MessageCircle, Paperclip } from 'lucide-react';
+import Avatar from '../../components/ui/Avatar';
 interface CardProps {
   card: CardType;
   columnId: number; // <-- ADD THIS PROP
+  onClick: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ card, columnId }) => { // <-- ADD IT HERE
+const Card: React.FC<CardProps> = ({ card, columnId, onClick }) => { // <-- ADD IT HERE
   const deleteCard = useBoardStore((state) => state.deleteCard);
 
   const {
@@ -56,29 +58,57 @@ const Card: React.FC<CardProps> = ({ card, columnId }) => { // <-- ADD IT HERE
       style={style}
       {...attributes}
       {...listeners}
-      className="p-3 mb-2 bg-neutral-700 rounded-md shadow-sm hover:bg-neutral-600 cursor-grab active:cursor-grabbing relative group"
+      onClick={onClick}
+      className="p-3 mb-2 bg-white rounded-md shadow-sm border border-transparent hover:border-gray-300 cursor-pointer relative group"
     >
-      <p>{card.title}</p>
-      
-      <button
-        onClick={onDeleteCard}
-        className="absolute top-2 right-2 text-neutral-500 hover:text-red-400 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <Trash2 size={14} />
-      </button>
-      
-      {card.assigned_user?.id && (
-        <div className="mt-2 flex justify-end">
-           <div 
-             className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-             style={{ backgroundColor: card.assigned_user.avatar_color || '#3B82F6' }}
-             title={card.assigned_user.username || ''}
-           >
-             {card.assigned_user.username?.charAt(0).toUpperCase()}
-           </div>
+      {/* Labels (Top) */}
+      <div className="flex flex-wrap gap-1 mb-2">
+        {card.labels.map((label, index) => (
+          <span
+            key={index}
+            className="px-2 py-0.5 rounded-sm text-xs font-medium"
+            style={{ backgroundColor: label.color, color: '#FFFFFF' }}
+          >
+            {label.text}
+          </span>
+        ))}
+      </div>
+
+      {/* Card Title */}
+      <p className="font-medium text-gray-900 mb-2">{card.title}</p>
+
+      {/* Footer Icons & Avatars */}
+      <div className="flex justify-between items-end text-gray-500 text-sm">
+        <div className="flex items-center gap-2">
+          {/* Due Date */}
+          {card.due_date && (
+            <div className="flex items-center gap-1">
+              <CalendarDays size={14} />
+              <span className="text-xs">{new Date(card.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            </div>
+          )}
+          {/* Checklist (Placeholder) */}
+          <div className="flex items-center gap-1 opacity-50">
+            <CheckSquare size={14} />
+            <span className="text-xs">0/0</span>
+          </div>
+          {/* Comments (Placeholder) */}
+          <div className="flex items-center gap-1 opacity-50">
+            <MessageCircle size={14} />
+            <span className="text-xs">0</span>
+          </div>
+          {/* Attachments (Placeholder) */}
+          <div className="flex items-center gap-1 opacity-50">
+            <Paperclip size={14} />
+            <span className="text-xs">0</span>
+          </div>
         </div>
-      )}
+
+        {/* Assigned User Avatar */}
+        {card.assigned_user && (
+          <Avatar user={card.assigned_user} size="sm" />
+        )}
+      </div>
     </div>
   );
 };

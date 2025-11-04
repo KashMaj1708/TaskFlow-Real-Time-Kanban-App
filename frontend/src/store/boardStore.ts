@@ -32,7 +32,9 @@ interface BoardState {
     dragIndex: number,
     hoverIndex: number
   ) => void;
-
+  syncMovedColumn: (columnId: number, newPosition: number) => void;
+  syncMovedCard: (cardId: number, oldColumnId: number, newColumnId: number, newPosition: number) => void;
+  updateCard: (updatedCard: Card) => void;
   handleSocketCardUpdate: (card: Card) => void;
   handleSocketColumnUpdate: (column: { id: number; title: string }) => void;
   
@@ -198,6 +200,87 @@ export const useBoardStore = create<BoardState>((set) => ({
 
     return { activeBoard: { ...state.activeBoard, columns: finalColumnsWithPositions } };
   }),
+
+  syncMovedColumn: (columnId, newPosition) => set((state) => {
+    if (!state.activeBoard) return {};
+  
+    const columnToMove = state.activeBoard.columns.find(c => c.id === columnId);
+    if (!columnToMove) return {};
+  
+    // Filter out the column
+    const tempCols = state.activeBoard.columns.filter(c => c.id !== columnId);
+    // Splice it into its new position
+    tempCols.splice(newPosition, 0, columnToMove);
+  
+    // Re-assign correct position property
+    const newColumns = tempCols.map((col, index) => ({ ...col, position: index }));
+  
+    return {
+      activeBoard: { ...state.activeBoard, columns: newColumns }
+    };
+  }),
+  
+  syncMovedCard: (cardId, oldColumnId, newColumnId, newPosition) => set((state) => {
+    if (!state.activeBoard) return {};
+  
+    let cardToMove: Card | undefined;
+    const tempColumns = state.activeBoard.columns.map(col => {
+      // Find and remove card from old column
+      if (col.id === oldColumnId) {
+        cardToMove = col.cards.find(c => c.id === cardId);
+        return { ...col, cards: col.cards.filter(c => c.id !== cardId) };
+      }
+      return col;
+    });
+  
+    if (!cardToMove) return {}; // Card not found, abort
+  
+    const finalColumns = tempColumns.map(col => {
+      // Add card to new column at new position
+      if (col.id === newColumnId) {
+        const newCards = [...col.cards];
+        newCards.splice(newPosition, 0, { ...cardToMove!, column_id: newColumnId });
+        return { ...col, cards: newCards };
+      }
+      return col;
+    });
+  
+    // Re-assign positions for both affected columns
+    const finalColumnsWithPositions = finalColumns.map(col => {
+      if (col.id === oldColumnId || col.id === newColumnId) {
+        return {
+          ...col,
+          cards: col.cards.map((card, index) => ({ ...card, position: index }))
+        };
+      }
+      return col;
+    });
+  
+    return {
+      activeBoard: { ...state.activeBoard, columns: finalColumnsWithPositions }
+    };
+  }),
+
+  updateCard: (updatedCard) => set((state) => {
+    if (!state.activeBoard) return {};
+  
+    const newColumns = state.activeBoard.columns.map(col => {
+      // Find the column that this card belongs to
+      if (col.id === updatedCard.column_id) {
+        // Map over its cards and replace the old one
+        const newCards = col.cards.map(card => 
+          card.id === updatedCard.id ? updatedCard : card
+        );
+        return { ...col, cards: newCards };
+      }
+      return col;
+    });
+  
+    return {
+      activeBoard: { ...state.activeBoard, columns: newColumns }
+    };
+  }),
+  
   handleSocketCardUpdate: (updatedCard) => set((state) => {
     if (!state.activeBoard) return {};
     const newColumns = state.activeBoard.columns.map(col => {

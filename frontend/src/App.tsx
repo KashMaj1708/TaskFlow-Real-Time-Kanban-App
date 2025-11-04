@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom'
 
 function App() {
   return (
-    <div className="min-h-screen bg-neutral-900 text-neutral-100">
+    <div className="min-h-screen">
       {/* We will add a Header/Navbar component here later */}
       <main>
         <Outlet />

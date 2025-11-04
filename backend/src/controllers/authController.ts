@@ -1,167 +1,150 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import pool from '../db';
-import { AuthRequest, UserPayload } from '../utils/types';
+import db from '../db'; // <-- Uses the new Knex db instance
+import { z } from 'zod';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const registerSchema = z.object({
+  username: z.string().min(3),
+  email: z.string().email(),
+  password: z.string().min(6),
+});
 
-// Function to generate JWT
-const generateToken = (user: UserPayload): string => {
-  return jwt.sign(user, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+// A simple color generator for new user avatars
+const avatarColors = [
+  '#ef4444', // red-500
+  '#f97316', // orange-500
+  '#eab308', // yellow-500
+  '#84cc16', // lime-500
+  '#22c55e', // green-500
+  '#14b8a6', // teal-500
+  '#06b6d4', // cyan-500
+  '#3b82f6', // blue-500
+  '#8b5cf6', // violet-500
+  '#d946ef', // fuchsia-500
+  '#ec4899', // pink-500
+];
+
+const getRandomColor = () => {
+  return avatarColors[Math.floor(Math.random() * avatarColors.length)];
 };
 
-/**
- * @route   POST /api/auth/register
- * @desc    Register a new user
- */
-export const registerUser = async (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
-
+export const register = async (req: Request, res: Response) => {
   try {
-    // Check if user already exists (by email or username)
-    const userExists = await pool.query(
-      "SELECT * FROM users WHERE email = $1 OR username = $2",
-      [email, username]
-    );
+    const { username, email, password } = registerSchema.parse(req.body);
 
-    if (userExists.rows.length > 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User with this email or username already exists' 
-      });
-    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const avatarColor = getRandomColor();
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-    
-    // Create a random avatar color (simple example)
-    const avatar_color = `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+    // --- THIS IS THE UPDATED KNEX SYNTAX ---
+    const [newUser] = await db('users')
+      .insert({
+        username,
+        email,
+        password_hash: hashedPassword,
+        avatar_color: avatarColor,
+      })
+      .returning(['id', 'username', 'email', 'avatar_color']);
+    // --- END UPDATE ---
 
-    // Insert new user into DB
-    const newUser = await pool.query(
-      "INSERT INTO users (username, email, password_hash, avatar_color) VALUES ($1, $2, $3, $4) RETURNING id, username, email, avatar_color",
-      [username, email, password_hash, avatar_color]
-    );
-
-    const user = newUser.rows[0];
-
-    // Create payload and generate token
-    const payload: UserPayload = {
-      userId: user.id,
-      username: user.username,
-      email: user.email,
-    };
-    const token = generateToken(payload);
-
-    // Respond as per the spec
     res.status(201).json({
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          avatar_color: user.avatar_color,
-        },
-        token,
-      },
+      message: 'User registered successfully',
+      data: newUser,
     });
-
   } catch (err) {
-    console.error('Registration Error:', (err as Error).message);
-    res.status(500).json({ success: false, message: 'Server error' });
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ success: false, errors: err.issues });
+    }
+    // Handle unique constraint error (e.g., email already exists)
+    if ((err as any).code === '23505') {
+      return res.status(409).json({ success: false, message: 'Email or username already exists' });
+    }
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * @route   POST /api/auth/login
- * @desc    Authenticate user
- */
-export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
+export const login = async (req: Request, res: Response) => {
   try {
-    // Check if user exists
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-    
-    if (userResult.rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+    const { email, password } = loginSchema.parse(req.body);
+
+    // --- THIS IS THE UPDATED KNEX SYNTAX ---
+    const user = await db('users').where({ email }).first();
+    // --- END UPDATE ---
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    const user = userResult.rows[0];
-
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password_hash);
+
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Create payload and generate token
-    const payload: UserPayload = {
-      userId: user.id,
-      username: user.username,
-      email: user.email,
-    };
-    const token = generateToken(payload);
+    const token = jwt.sign(
+      { id: user.id, username: user.username },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
 
-    // Respond as per the spec
-    res.status(200).json({
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    res.json({
       success: true,
       data: {
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          avatar_color: user.avatar_color,
-        },
-        token,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar_color: user.avatar_color,
       },
     });
-
   } catch (err) {
-    console.error('Login Error:', (err as Error).message);
-    res.status(500).json({ success: false, message: 'Server error' });
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ success: false, errors: err.issues });
+    }
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 };
 
-/**
- * @route   GET /api/auth/me
- * @desc    Get current user info
- */
-export const getMe = async (req: AuthRequest, res: Response) => {
-  // The user ID is attached to req.user by the authMiddleware
-  const userId = req.user?.userId;
-
-  if (!userId) {
-     return res.status(401).json({ success: false, message: 'Not authorized' });
-  }
-
+export const getMe = async (req: Request, res: Response) => {
+  // This controller should now also use 'any' cast for req.user
   try {
-    const userResult = await pool.query(
-      "SELECT id, username, email, avatar_color FROM users WHERE id = $1",
-      [userId]
-    );
+    const userId = (req as any).user.id;
 
-    if (userResult.rows.length === 0) {
+    // --- THIS IS THE UPDATED KNEX SYNTAX ---
+    const user = await db('users')
+      .select('id', 'username', 'email', 'avatar_color')
+      .where({ id: userId })
+      .first();
+    // --- END UPDATE ---
+
+    if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    
-    // Respond as per the spec
-    res.status(200).json({
-      success: true,
-      data: userResult.rows[0],
-    });
-
+    res.json({ success: true, data: user });
   } catch (err) {
-    console.error('GetMe Error:', (err as Error).message);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
+};
+
+export const logout = (req: Request, res: Response) => {
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+  res.json({ success: true, message: 'Logged out successfully' });
 };

@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ADD THIS STUFF BELOW */
+@layer base {
+  body {
+    background-color: #f4f5f7; /* A light grey, Trello-like color */
+    color: #172b4d; /* A dark blueish-grey for text */
+  }
+}

@@ -12,7 +12,7 @@ const Input: React.FC<InputProps> = ({ registration, ...props }) => {
     <input
       {...registration}
       {...props}
-      className="w-full px-3 py-2 text-white bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+      className="w-full px-3 py-2 text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400 ${className}"
     />
   );
 };
