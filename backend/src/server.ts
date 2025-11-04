@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
+import jwt from 'jsonwebtoken';
 
 // --- ROUTE IMPORTS ---
 import authRoutes from './routes/auth';
