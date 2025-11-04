@@ -3,6 +3,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cookieParser from 'cookie-parser';
+import cookie from 'cookie';
 import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 
@@ -23,7 +24,25 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+io.use((socket, next) => {
+  try {
+    const cookies = socket.handshake.headers.cookie;
+    if (!cookies) {
+      return next(new Error('Authentication error: No cookies found'));
+    }
 
+    const token = cookie.parse(cookies).token;
+    if (!token) {
+      return next(new Error('Authentication error: No token found'));
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    (socket as any).user = decoded; // Attach user to the socket object
+    next();
+  } catch (err) {
+    return next(new Error('Authentication error: Invalid token'));
+  }
+});
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 

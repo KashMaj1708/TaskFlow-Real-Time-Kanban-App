@@ -24,10 +24,10 @@ export const createCard = async (req: Request, res: Response) => {
     const [newCard] = await db('cards')
       .insert({
         column_id: columnId,
-        board_id: column.board_id,
+      //  board_id: column.board_id,
         title,
         position: newOrder, // <-- THIS IS THE FIX
-        created_by_id: (req as any).user.id,
+        created_by: (req as any).user.id,
       })
       .returning('*');
       
@@ -117,9 +117,11 @@ export const getCardWithDetails = async (cardId: number) => {
     .where('cards.id', cardId)
     .select(
       'cards.*',
+      'columns.board_id', // <-- ADD THIS
       'users.username as assigned_username',
       'users.avatar_color as assigned_avatar_color'
     )
+    .leftJoin('columns', 'cards.column_id', 'columns.id') // <-- ADD THIS JOIN
     .leftJoin('users', 'cards.assigned_user_id', 'users.id');
 
   if (!card) return null;

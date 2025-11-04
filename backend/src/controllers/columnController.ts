@@ -63,14 +63,22 @@ export const updateColumnOrder = async (req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
     const { columns } = req.body; // Expects an array of { id: number, order: number }
+    const { id: userId } = (req as any).user;
+    console.log(`SYNC: API /order hit for board ${boardId}`, columns); // Debug log
 
     await db.transaction(async (trx) => {
       for (const col of columns) {
         await trx('columns')
           .where({ id: col.id, board_id: boardId })
-          .update({ position: col.order }); // <-- FIXED
+          .update({ position: col.order });
       }
     });
+
+    // --- ADD THIS SECTION FOR SYNC ---
+    const io = req.app.get('io');
+    io.to(`board:${boardId}`).emit('column:moved', { columns, movedBy: userId });
+    console.log(`SYNC: Emitted 'column:moved' to room board:${boardId}`); // Debug log
+    // --- END ADDED SECTION ---
 
     res.json({ success: true, message: 'Column order updated' });
   } catch (err) {
@@ -85,18 +93,26 @@ export const updateCardOrder = async (req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
     const { cards } = req.body; // Expects array of { id: number, order: number, column_id: number }
+    const { id: userId } = (req as any).user;
+    console.log(`SYNC: API /cards/order hit for board ${boardId}`, cards); // Debug log
 
     await db.transaction(async (trx) => {
       for (const card of cards) {
         await trx('cards')
           .where({ id: card.id })
           .update({
-            position: card.order, // <-- FIXED
+            position: card.order,
             column_id: card.column_id,
           });
       }
     });
     
+    // --- ADD THIS SECTION FOR SYNC ---
+    const io = req.app.get('io');
+    io.to(`board:${boardId}`).emit('card:moved', { cards, movedBy: userId });
+    console.log(`SYNC: Emitted 'card:moved' to room board:${boardId}`); // Debug log
+    // --- END ADDED SECTION ---
+
     res.json({ success: true, message: 'Card order updated' });
   } catch (err) {
     console.error(err);

@@ -70,7 +70,7 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
   };
   const onCreateCard = async (data: CreateCardForm) => {
     try {
-      const response = await api.post(`/api/columns/${column.id}/cards`, { title: data.title });
+      const response = await api.post(`/api/cards/column/${column.id}`, { title: data.title });
       if (response.success) {
         const newCard = {
           ...response.data,
@@ -91,7 +91,7 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col flex-shrink-0 w-72 bg-gray-100 rounded-lg shadow-md overflow-hidden"
+      className="lex flex-col flex-shrink-0 w-72 bg-gray-100 rounded-lg shadow-md overflow-hidden h-full"
     >
       {/* Column Header */}
       <div
