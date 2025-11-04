@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import pool from '../db';
+import db from '../db'; // <-- This is your Knex instance
 import { AuthRequest } from '../utils/types';
 
 /**
@@ -7,24 +7,22 @@ import { AuthRequest } from '../utils/types';
  * associated with the :columnId
  */
 export const checkColumnPermission = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
+  const userId = (req as any).user.id; // Corrected from your authController
   const { columnId } = req.params;
 
   try {
-    const query = `
-      SELECT c.board_id 
-      FROM columns c
-      JOIN board_members bm ON c.board_id = bm.board_id
-      WHERE c.id = $1 AND bm.user_id = $2
-    `;
-    const result = await pool.query(query, [columnId, userId]);
+    const membership = await db('columns as c')
+      .join('board_members as bm', 'c.board_id', 'bm.board_id')
+      .where('c.id', columnId)
+      .andWhere('bm.user_id', userId)
+      .first('c.board_id'); // Select the board_id
 
-    if (result.rows.length === 0) {
+    if (!membership) {
       return res.status(403).json({ success: false, message: 'Not authorized for this column' });
     }
     
-    // Attach board_id to request for potential use in controllers
-    (req as any).boardId = result.rows[0].board_id;
+    // Attach board_id to request
+    (req as any).boardId = membership.board_id;
     next();
   } catch (err) {
     console.error('Column Permission Error:', (err as Error).message);
@@ -37,25 +35,23 @@ export const checkColumnPermission = async (req: AuthRequest, res: Response, nex
  * associated with the :cardId
  */
 export const checkCardPermission = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
+  const userId = (req as any).user.id; // Corrected from your authController
   const { cardId } = req.params;
 
   try {
-    const query = `
-      SELECT c.board_id 
-      FROM cards ca
-      JOIN columns c ON ca.column_id = c.id
-      JOIN board_members bm ON c.board_id = bm.board_id
-      WHERE ca.id = $1 AND bm.user_id = $2
-    `;
-    const result = await pool.query(query, [cardId, userId]);
+    const membership = await db('cards as ca')
+      .join('columns as c', 'ca.column_id', 'c.id')
+      .join('board_members as bm', 'c.board_id', 'bm.board_id')
+      .where('ca.id', cardId)
+      .andWhere('bm.user_id', userId)
+      .first('c.board_id'); // Select the board_id
 
-    if (result.rows.length === 0) {
+    if (!membership) {
       return res.status(403).json({ success: false, message: 'Not authorized for this card' });
     }
 
     // Attach board_id to request
-    (req as any).boardId = result.rows[0].board_id;
+    (req as any).boardId = membership.board_id;
     next();
   } catch (err) {
     console.error('Card Permission Error:', (err as Error).message);
@@ -65,23 +61,26 @@ export const checkCardPermission = async (req: AuthRequest, res: Response, next:
 
 /**
  * @desc    Checks if the authenticated user is a member of the board
- * associated with the :boardId (used for creating columns)
+ * associated with the :boardId
  */
 export const checkBoardPermission = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const userId = req.user?.userId;
+  const userId = (req as any).user.id; // Corrected from your authController
   const { boardId } = req.params;
 
   try {
-    const memberCheck = await pool.query(
-      "SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2",
-      [boardId, userId]
-    );
+    const membership = await db('board_members')
+      .where({
+        board_id: boardId,
+        user_id: userId,
+      })
+      .first(); // Just check if a row exists
 
-    if (memberCheck.rows.length === 0) {
+    if (!membership) {
       return res.status(403).json({ success: false, message: 'Not authorized for this board' });
     }
     next();
-  } catch (err) {
+  } catch (err)
+    {
     console.error('Board Permission Error:', (err as Error).message);
     res.status(500).json({ success: false, message: 'Server error' });
   }
