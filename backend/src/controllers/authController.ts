@@ -41,7 +41,6 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const avatarColor = getRandomColor();
 
-    // --- THIS IS THE UPDATED KNEX SYNTAX ---
     const [newUser] = await db('users')
       .insert({
         username,
@@ -50,7 +49,6 @@ export const register = async (req: Request, res: Response) => {
         avatar_color: avatarColor,
       })
       .returning(['id', 'username', 'email', 'avatar_color']);
-    // --- END UPDATE ---
 
     res.status(201).json({
       success: true,
@@ -58,6 +56,7 @@ export const register = async (req: Request, res: Response) => {
       data: newUser,
     });
   } catch (err) {
+    // --- THIS IS THE UPDATED CATCH BLOCK ---
     if (err instanceof z.ZodError) {
       return res.status(400).json({ success: false, errors: err.issues });
     }
@@ -66,7 +65,13 @@ export const register = async (req: Request, res: Response) => {
       return res.status(409).json({ success: false, message: 'Email or username already exists' });
     }
     console.error(err);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    // Handle 'unknown' type error
+    if (err instanceof Error) {
+      res.status(500).json({ success: false, message: err.message });
+    } else {
+      res.status(500).json({ success: false, message: 'An unknown internal server error occurred' });
+    }
+    // --- END UPDATE ---
   }
 };
 
@@ -74,9 +79,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
-    // --- THIS IS THE UPDATED KNEX SYNTAX ---
     const user = await db('users').where({ email }).first();
-    // --- END UPDATE ---
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
@@ -111,33 +114,44 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
+    // --- THIS IS THE UPDATED CATCH BLOCK ---
     if (err instanceof z.ZodError) {
       return res.status(400).json({ success: false, errors: err.issues });
     }
     console.error(err);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    // Handle 'unknown' type error
+    if (err instanceof Error) {
+      res.status(500).json({ success: false, message: err.message });
+    } else {
+      res.status(500).json({ success: false, message: 'An unknown internal server error occurred' });
+    }
+    // --- END UPDATE ---
   }
 };
 
 export const getMe = async (req: Request, res: Response) => {
-  // This controller should now also use 'any' cast for req.user
   try {
     const userId = (req as any).user.id;
 
-    // --- THIS IS THE UPDATED KNEX SYNTAX ---
     const user = await db('users')
       .select('id', 'username', 'email', 'avatar_color')
       .where({ id: userId })
       .first();
-    // --- END UPDATE ---
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     res.json({ success: true, data: user });
   } catch (err) {
+    // --- THIS IS THE UPDATED CATCH BLOCK ---
     console.error(err);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    // Handle 'unknown' type error
+    if (err instanceof Error) {
+      res.status(500).json({ success: false, message: err.message });
+    } else {
+      res.status(500).json({ success: false, message: 'An unknown internal server error occurred' });
+    }
+    // --- END UPDATE ---
   }
 };
 
