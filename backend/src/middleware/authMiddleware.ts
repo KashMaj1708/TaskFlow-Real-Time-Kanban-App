@@ -2,16 +2,20 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.cookies.token;
+  // --- 1. GET TOKEN FROM AUTHORIZATION HEADER ---
+  const authHeader = req.headers.authorization;
+  // The header format is "Bearer TOKEN"
+  const token = authHeader && authHeader.split(' ')[1];
+  // --- END CHANGE ---
 
   if (!token) {
-    console.log('JWT_SECRET IS NOT SET:', !!process.env.JWT_SECRET);
+    // Removing the debug console.log
     return res.status(401).json({ success: false, message: 'Unauthorized: No token provided' });
   }
 
   try {
+    // Removing the debug console.log
     // Verify the token and get the payload
-    console.log('JWT_SECRET IS SET:', !!process.env.JWT_SECRET);
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     
     // Attach the payload (which should be { id: ..., username: ... }) to the request

@@ -97,13 +97,16 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    // --- 1. DELETE THE res.cookie BLOCK ---
+    // res.cookie('token', token, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: 'none',
+    //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    // });
+    // --- END DELETE ---
 
+    // --- 2. ADD THE token TO THE JSON RESPONSE ---
     res.json({
       success: true,
       data: {
@@ -112,7 +115,10 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
         avatar_color: user.avatar_color,
       },
+      token: token, // <-- ADD THIS LINE
     });
+    // --- END ADD ---
+
   } catch (err) {
     // --- THIS IS THE UPDATED CATCH BLOCK ---
     if (err instanceof z.ZodError) {
@@ -156,9 +162,13 @@ export const getMe = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-  res.cookie('token', '', {
-    httpOnly: true,
-    expires: new Date(0),
-  });
+  // --- DELETE THE res.cookie BLOCK ---
+  // The client will handle its own token deletion from local storage
+  // res.cookie('token', '', {
+  //   httpOnly: true,
+  //   expires: new Date(0),
+  // });
+  // --- END DELETE ---
+
   res.json({ success: true, message: 'Logged out successfully' });
 };

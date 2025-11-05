@@ -1,6 +1,5 @@
 import { useAuthStore } from '../store/authStore';
 
-// --- THIS IS THE FIX (PART 1) ---
 // Get the API base URL from your Vercel environment variables
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -20,14 +19,14 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  // --- THIS IS THE FIX (PART 2) ---
   // Create the full, absolute URL
-  // e.g., "https://taskflow-api-f7ai.onrender.com" + "/api/auth/register"
   const fullUrl = `${API_URL}${url}`;
 
   const response = await fetch(fullUrl, { // <-- Use fullUrl here
     ...options,
-    credentials: 'include',
+    // --- 1. DELETE THIS LINE ---
+    // credentials: 'include', // <-- This was for cookies
+    // --- END DELETE ---
     headers,
   });
 

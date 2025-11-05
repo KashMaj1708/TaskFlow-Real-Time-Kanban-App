@@ -2,8 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import cookieParser from 'cookie-parser';
-import cookie from 'cookie';
+// --- 1. DELETE COOKIE IMPORTS ---
+// import cookieParser from 'cookie-parser';
+// import cookie from 'cookie';
+// --- END DELETE ---
 import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 
@@ -24,16 +26,15 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+// --- 2. UPDATE SOCKET.IO MIDDLEWARE ---
 io.use((socket, next) => {
   try {
-    const cookies = socket.handshake.headers.cookie;
-    if (!cookies) {
-      return next(new Error('Authentication error: No cookies found'));
-    }
+    // Read token from the 'auth' payload sent by the client
+    const token = socket.handshake.auth.token;
 
-    const token = cookie.parse(cookies).token;
     if (!token) {
-      return next(new Error('Authentication error: No token found'));
+      return next(new Error('Authentication error: No token provided'));
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
@@ -43,6 +44,8 @@ io.use((socket, next) => {
     return next(new Error('Authentication error: Invalid token'));
   }
 });
+// --- END UPDATE ---
+
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
@@ -71,7 +74,10 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json()); // Parses incoming JSON requests
-app.use(cookieParser()); // Parses cookies for auth
+
+// --- 3. DELETE COOKIE PARSER ---
+// app.use(cookieParser()); // Parses cookies for auth
+// --- END DELETE ---
 
 // --- ROUTES ---
 app.use('/api/auth', authRoutes);

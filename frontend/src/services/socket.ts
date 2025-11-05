@@ -1,8 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 
-// The URL of our backend socket server
-const URL = 'http://localhost:5000';
+// --- 1. USE THE VITE_API_URL ENV VARIABLE ---
+const URL = import.meta.env.VITE_API_URL;
+// --- END CHANGE ---
 
 export const socket: Socket = io(URL, {
   autoConnect: false, // We will connect manually
