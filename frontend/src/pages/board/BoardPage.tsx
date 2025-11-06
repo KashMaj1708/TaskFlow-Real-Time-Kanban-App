@@ -27,7 +27,6 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 // --- END DND IMPORTS ---
 
 // --- Socket & Modal Imports ---
-// --- 1. THIS IS THE IMPORT FIX ---
 import { getSocket, connectSocket, disconnectSocket } from '../../services/socketService'; 
 import { type BoardMember, type Column as ColumnType, type Card } from '../../types';
 import MembersModal from '../../components/board/MembersModal';
@@ -130,17 +129,16 @@ const BoardPage = () => {
     fetchBoard();
   }, [boardId, setActiveBoard]);
 
-  // --- Socket useEffect (THIS IS THE FIX) ---
+  // --- Socket useEffect ---
   useEffect(() => {
     if (!boardId) return;
 
-    // --- 2. Get the socket instance ---
-    const socket = getSocket(); // <-- Call getSocket() here
+    const socket = getSocket(); 
 
     // 1. Define event handlers
     const onConnect = () => {
       console.log('Socket successfully connected, joining room...');
-      socket.emit('join:board', boardId); // <-- Use the local 'socket' variable
+      socket.emit('join:board', boardId); 
     };
 
     const onCardCreated = (newCard: Card) => addCard(newCard);
@@ -160,7 +158,7 @@ const BoardPage = () => {
     };
 
     // 2. Attach listeners
-    socket.on('connect', onConnect); // <-- Use the local 'socket' variable
+    socket.on('connect', onConnect); 
     socket.on('card:created', onCardCreated);
     socket.on('card:updated', onCardUpdated);
     socket.on('card:deleted', onCardDeleted);
@@ -176,9 +174,9 @@ const BoardPage = () => {
     // 4. Cleanup function
     return () => {
       console.log('Cleaning up socket listeners and disconnecting...');
-      socket.emit('leave:board', boardId); // <-- Use the local 'socket' variable
+      socket.emit('leave:board', boardId); 
       
-      socket.off('connect', onConnect); // <-- Use the local 'socket' variable
+      socket.off('connect', onConnect); 
       socket.off('card:created', onCardCreated);
       socket.off('card:updated', onCardUpdated);
       socket.off('card:deleted', onCardDeleted);
@@ -207,7 +205,7 @@ const BoardPage = () => {
     }
   };
 
-  // --- DND HANDLERS ---
+  // --- DND HANDLERS (THIS IS THE FIX) ---
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     setActiveDrag({
@@ -219,14 +217,7 @@ const BoardPage = () => {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    console.log(
-      'DRAG END', 
-      { 
-        activeType: active.data.current?.type, 
-        overId: over?.id, 
-        overType: over?.data.current?.type 
-      }
-    );
+
     if (!over || !activeDrag) {
       setActiveDrag(null);
       return;
@@ -234,15 +225,30 @@ const BoardPage = () => {
 
     const activeId = active.id as number;
     const overId = over.id as number;
-    const startColumnId = activeDrag.data.columnId;
-
+    
+    // --- COLUMN DRAG END ---
     if (activeDrag.type === 'Column' && activeId !== overId) {
+      // 1. Optimistically update local state
       const oldIndex = activeBoard?.columns.findIndex(c => c.id === activeId) ?? 0;
       const newIndex = activeBoard?.columns.findIndex(c => c.id === overId) ?? 0;
-      moveColumn(oldIndex, newIndex);
+      moveColumn(oldIndex, newIndex); // This is your local store update
+      
+      // 2. Get the new state
+      const updatedColumns = activeBoard?.columns.map((col, index) => ({
+        id: col.id,
+        order: index,
+      }));
+
+      // 3. Call the API to save the change
+      if (updatedColumns) {
+        api.put('/api/columns/move', { boardId, columns: updatedColumns })
+          .catch(err => console.error("Failed to save column move:", err));
+      }
     }
 
+    // --- CARD DRAG END ---
     if (activeDrag.type === 'Card') {
+      const startColumnId = activeDrag.data.columnId;
       const overIsCard = over.data.current?.type === 'Card';
       const overIsColumn = over.data.current?.type === 'Column';
       
@@ -271,7 +277,35 @@ const BoardPage = () => {
         .find(c => c.id === startColumnId)
         ?.cards.findIndex(c => c.id === activeId) ?? 0;
 
+      // 1. Optimistically update local state
       moveCard(activeId, startColumnId, endColumnId, oldIndex, newIndex);
+
+      // 2. Get the new state
+      const startCol = activeBoard?.columns.find(c => c.id === startColumnId);
+      const endCol = activeBoard?.columns.find(c => c.id === endColumnId);
+      
+      const cardUpdates = [];
+      if (endCol) {
+        cardUpdates.push(...endCol.cards.map((card, index) => ({
+          id: card.id,
+          order: index,
+          column_id: endCol.id,
+        })));
+      }
+      // If moved from a different column, update that one too
+      if (startCol && startColumnId !== endColumnId) {
+        cardUpdates.push(...startCol.cards.map((card, index) => ({
+          id: card.id,
+          order: index,
+          column_id: startCol.id,
+        })));
+      }
+      
+      // 3. Call the API to save the change
+      if (cardUpdates.length > 0) {
+        api.put('/api/cards/move', { boardId, cards: cardUpdates })
+          .catch(err => console.error("Failed to save card move:", err));
+      }
     }
 
     setActiveDrag(null);
