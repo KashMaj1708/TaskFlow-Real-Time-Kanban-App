@@ -1,16 +1,24 @@
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore } from '../store/authStore'; // Keep this, it's fine
 
 // Get the API base URL from your Vercel environment variables
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Helper to get the token from the Zustand store
 const getAuthToken = () => {
-  return useAuthStore.getState().token;
+  // --- THIS IS THE FIX ---
+  // Read directly from localStorage to avoid the race condition
+  const authStorage = localStorage.getItem('auth-storage');
+  if (authStorage) {
+    const authState = JSON.parse(authStorage);
+    return authState.state.token; // Get the token from the persisted state
+  }
+  return null; // No token found
+  // --- END FIX ---
 };
 
 // Base function for fetch with auth
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const token = getAuthToken();
+  const token = getAuthToken(); // This now reads from localStorage
   const headers = new Headers(options.headers || {
     'Content-Type': 'application/json',
   });
@@ -24,9 +32,6 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
   const response = await fetch(fullUrl, { // <-- Use fullUrl here
     ...options,
-    // --- 1. DELETE THIS LINE ---
-    // credentials: 'include', // <-- This was for cookies
-    // --- END DELETE ---
     headers,
   });
 
