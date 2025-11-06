@@ -17,12 +17,15 @@ const RegisterPage = () => {
       });
 
       if (response.success) {
-        // Save user and token to store
-        setUser(response.data.user, response.data.token);
+        // --- THIS IS THE FIX ---
+        // The user is response.data
+        // The token is response.token
+        setUser(response.data, response.token);
+        // --- END FIX ---
+        
         // Redirect to dashboard
         navigate('/');
       } else {
-        // --- THIS IS THE UPDATED PART ---
         // Handle different error types
         let errorMessage = 'Registration failed. Please try again.';
         if (response.message) {
@@ -33,7 +36,6 @@ const RegisterPage = () => {
           errorMessage = response.errors.map((err: any) => err.msg).join('\n');
         }
         alert(errorMessage);
-        // --- END OF UPDATED PART ---
       }
     } catch (error) {
       console.error('Registration failed:', error);

@@ -16,10 +16,14 @@ const LoginPage = () => {
       });
 
       if (response.success) {
-        // Save user and token to store
-        setUser(response.data.user, response.data.token);
+        // --- THIS IS THE FIX ---
+        // The user is response.data
+        // The token is response.token
+        setUser(response.data, response.token);
+        // --- END FIX ---
+        
         // Redirect to dashboard
-        navigate('/');
+        navigate('/'); // Make sure this route exists, or change to '/boards'
       } else {
         // Handle login error
         alert(response.message);
