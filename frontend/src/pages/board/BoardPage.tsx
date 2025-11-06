@@ -20,7 +20,6 @@ import {
   useSensor,
   useSensors,
   type DragStartEvent,
-  // type DragOverEvent, // No longer needed
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
@@ -29,7 +28,8 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 
 // --- Socket & Modal Imports ---
 // UPDATED Import:
-import { socket, connectSocket, disconnectSocket } from '../../services/socketService';
+// --- MAKE SURE THIS PATH IS CORRECT ---
+import { socket, connectSocket, disconnectSocket } from '../../services/socketService'; 
 import { type BoardMember, type Column as ColumnType, type Card } from '../../types';
 import MembersModal from '../../components/board/MembersModal';
 // --- End Socket & Modal Imports ---
@@ -76,7 +76,7 @@ const BoardPage = () => {
     updateCardInStore: state.updateCard, 
     removeCard: state.deleteCard,       
     addColumn: state.addColumn,
-    removeColumn: state.deleteColumn,     
+    removeColumn: state.deleteColumn,      
     addMember: state.addMember,
     syncMovedColumn: state.syncMovedColumn,
     syncMovedCard: state.syncMovedCard,
@@ -131,15 +131,16 @@ const BoardPage = () => {
     fetchBoard();
   }, [boardId, setActiveBoard]);
 
-  // --- Socket useEffect ---
+  // --- Socket useEffect (THIS IS THE FIX) ---
   useEffect(() => {
     if (!boardId) return;
 
-    // 1. Connect and join the room
-    connectSocket();
-    socket.emit('join:board', boardId);
+    // 1. Define event handlers
+    const onConnect = () => {
+      console.log('Socket successfully connected, joining room...');
+      socket.emit('join:board', boardId);
+    };
 
-    // 2. Define listeners
     const onCardCreated = (newCard: Card) => addCard(newCard);
     const onCardUpdated = (updatedCard: Card) => updateCardInStore(updatedCard);
     const onCardDeleted = ({ cardId, columnId }: { cardId: number; columnId: number }) => removeCard(cardId, columnId);
@@ -156,7 +157,8 @@ const BoardPage = () => {
       syncMovedCard(cardPayload);
     };
 
-    // 3. Attach listeners
+    // 2. Attach listeners
+    socket.on('connect', onConnect); // <-- Listen for the 'connect' event
     socket.on('card:created', onCardCreated);
     socket.on('card:updated', onCardUpdated);
     socket.on('card:deleted', onCardDeleted);
@@ -166,10 +168,15 @@ const BoardPage = () => {
     socket.on('column:moved', onColumnMoved);
     socket.on('card:moved', onCardMoved);
 
+    // 3. Connect (this will start the auth process)
+    connectSocket();
+
     // 4. Cleanup function
     return () => {
+      console.log('Cleaning up socket listeners and disconnecting...');
       socket.emit('leave:board', boardId);
       
+      socket.off('connect', onConnect); // <-- Clean up 'connect' listener
       socket.off('card:created', onCardCreated);
       socket.off('card:updated', onCardUpdated);
       socket.off('card:deleted', onCardDeleted);
@@ -191,6 +198,7 @@ const BoardPage = () => {
   const onCreateColumn = async (data: CreateColumnForm) => {
     if (!boardId) return;
     try {
+      // This HTTP request IS working, which is why refresh fixes it.
       await api.post(`/api/columns/board/${boardId}`, { title: data.title });
       reset();
     } catch (error) {
