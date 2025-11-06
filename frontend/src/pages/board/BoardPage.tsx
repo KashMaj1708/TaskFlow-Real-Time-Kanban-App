@@ -218,7 +218,7 @@ const BoardPage = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (!over || !activeDrag) {
+    if (!over || !activeDrag || !boardId) {
       setActiveDrag(null);
       return;
     }
@@ -241,7 +241,8 @@ const BoardPage = () => {
 
       // 3. Call the API to save the change
       if (updatedColumns) {
-        api.put('/api/columns/move', { boardId, columns: updatedColumns })
+        // --- THIS IS THE FIXED ROUTE ---
+        api.put(`/api/columns/board/${boardId}/order`, { columns: updatedColumns })
           .catch(err => console.error("Failed to save column move:", err));
       }
     }
@@ -303,7 +304,8 @@ const BoardPage = () => {
       
       // 3. Call the API to save the change
       if (cardUpdates.length > 0) {
-        api.put('/api/cards/move', { boardId, cards: cardUpdates })
+        // --- THIS IS THE FIXED ROUTE ---
+        api.put(`/api/columns/board/${boardId}/cards/order`, { cards: cardUpdates })
           .catch(err => console.error("Failed to save card move:", err));
       }
     }
@@ -329,7 +331,7 @@ const BoardPage = () => {
       <div className="flex flex-col h-screen p-4 gap-4 text-neutral-900">
         
         {/* Board Header */}
-        <div className="flex-shrink-0 flex justify-between items-center px-4">
+        <div className="flex-shrink-0 flex justify-between items-.center px-4">
           {/* Left Side */}
           <div className="flex items-center gap-2">
             <Link to="/" className="text-neutral-400 hover:text-gray-700" title="Back to Dashboard">
