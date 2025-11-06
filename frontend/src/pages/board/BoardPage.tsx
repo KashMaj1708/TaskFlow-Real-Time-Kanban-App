@@ -27,9 +27,8 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 // --- END DND IMPORTS ---
 
 // --- Socket & Modal Imports ---
-// UPDATED Import:
-// --- MAKE SURE THIS PATH IS CORRECT ---
-import { socket, connectSocket, disconnectSocket } from '../../services/socketService'; 
+// --- 1. THIS IS THE IMPORT FIX ---
+import { getSocket, connectSocket, disconnectSocket } from '../../services/socketService'; 
 import { type BoardMember, type Column as ColumnType, type Card } from '../../types';
 import MembersModal from '../../components/board/MembersModal';
 // --- End Socket & Modal Imports ---
@@ -49,7 +48,7 @@ type ActiveDragType = {
 };
 
 const BoardPage = () => {
-  const { user, logout } = useAuth(); // <-- GET LOGOUT FUNCTION
+  const { user, logout } = useAuth(); 
   const { boardId } = useParams<{ boardId: string }>();
 
   // --- Store actions ---
@@ -135,10 +134,13 @@ const BoardPage = () => {
   useEffect(() => {
     if (!boardId) return;
 
+    // --- 2. Get the socket instance ---
+    const socket = getSocket(); // <-- Call getSocket() here
+
     // 1. Define event handlers
     const onConnect = () => {
       console.log('Socket successfully connected, joining room...');
-      socket.emit('join:board', boardId);
+      socket.emit('join:board', boardId); // <-- Use the local 'socket' variable
     };
 
     const onCardCreated = (newCard: Card) => addCard(newCard);
@@ -158,7 +160,7 @@ const BoardPage = () => {
     };
 
     // 2. Attach listeners
-    socket.on('connect', onConnect); // <-- Listen for the 'connect' event
+    socket.on('connect', onConnect); // <-- Use the local 'socket' variable
     socket.on('card:created', onCardCreated);
     socket.on('card:updated', onCardUpdated);
     socket.on('card:deleted', onCardDeleted);
@@ -174,9 +176,9 @@ const BoardPage = () => {
     // 4. Cleanup function
     return () => {
       console.log('Cleaning up socket listeners and disconnecting...');
-      socket.emit('leave:board', boardId);
+      socket.emit('leave:board', boardId); // <-- Use the local 'socket' variable
       
-      socket.off('connect', onConnect); // <-- Clean up 'connect' listener
+      socket.off('connect', onConnect); // <-- Use the local 'socket' variable
       socket.off('card:created', onCardCreated);
       socket.off('card:updated', onCardUpdated);
       socket.off('card:deleted', onCardDeleted);
@@ -198,7 +200,6 @@ const BoardPage = () => {
   const onCreateColumn = async (data: CreateColumnForm) => {
     if (!boardId) return;
     try {
-      // This HTTP request IS working, which is why refresh fixes it.
       await api.post(`/api/columns/board/${boardId}`, { title: data.title });
       reset();
     } catch (error) {
