@@ -166,7 +166,7 @@ const BoardPage = () => {
     socket.on('card:deleted', onCardDeleted);
     socket.on('column:created', onColumnCreated);
     socket.on('column:deleted', onColumnDeleted);
-    socket.on('member:joined', onMemberJoined);
+    socket.on('board:member:added', onMemberJoined);
     socket.on('column:moved', onColumnMoved);
     socket.on('card:moved', onCardMoved);
 
@@ -184,7 +184,7 @@ const BoardPage = () => {
       socket.off('card:deleted', onCardDeleted);
       socket.off('column:created', onColumnCreated);
       socket.off('column:deleted', onColumnDeleted);
-      socket.off('member:joined', onMemberJoined);
+      socket.off('board:member:added', onMemberJoined);
       socket.off('column:moved', onColumnMoved);
       socket.off('card:moved', onCardMoved);
 
