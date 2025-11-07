@@ -123,7 +123,7 @@ export const inviteUserToBoard = async (req: Request, res: Response) => {
       user_id: user.id,
       role: 'member',
     });
-    
+    //STABLE RELEASE 1
     // Return the new member's details
     const newMember = {
       id: user.id,
