@@ -207,8 +207,13 @@ const BoardPage = () => {
     }
   };
 
-  // --- DND HANDLERS (THIS IS THE FIX) ---
+  // --- DND HANDLERS (WITH DEBUG LOGS) ---
   const handleDragStart = (event: DragStartEvent) => {
+    // --- DEBUG ---
+    console.log('[DragStart] Fired');
+    console.log('[DragStart] Active element data:', event.active.data.current);
+    // --- END DEBUG ---
+    
     const { active } = event;
     setActiveDrag({
       type: active.data.current?.type,
@@ -218,9 +223,17 @@ const BoardPage = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    // --- DEBUG ---
+    console.log('[DragEnd] Fired');
+    // --- END DEBUG ---
+    
     const { active, over } = event;
 
     if (!over || !activeDrag || !boardId) {
+      // --- DEBUG ---
+      console.log('[DragEnd] Exiting early: "over" or "activeDrag" or "boardId" is missing.');
+      console.log({ over, activeDrag, boardId });
+      // --- END DEBUG ---
       setActiveDrag(null);
       return;
     }
@@ -230,19 +243,23 @@ const BoardPage = () => {
     
     // --- COLUMN DRAG END ---
     if (activeDrag.type === 'Column' && activeId !== overId) {
-      // 1. Optimistically update local state
+      // --- DEBUG ---
+      console.log('[DragEnd] Drag type is Column');
+      // --- END DEBUG ---
+      
       const oldIndex = activeBoard?.columns.findIndex(c => c.id === activeId) ?? 0;
       const newIndex = activeBoard?.columns.findIndex(c => c.id === overId) ?? 0;
-      moveColumn(oldIndex, newIndex); // This is your local store update
+      moveColumn(oldIndex, newIndex); 
       
-      // 2. Get the new state *after* the move
       const updatedColumns = useBoardStore.getState().activeBoard?.columns.map((col, index) => ({
         id: col.id,
-        order: index, // Use 'order' as expected by the API
+        order: index, 
       }));
 
-      // 3. Call the API to save the change
       if (updatedColumns) {
+        // --- DEBUG ---
+        console.log('[DragEnd] Sending COLUMN update API request:', updatedColumns);
+        // --- END DEBUG ---
         api.put(`/api/columns/board/${boardId}/order`, { columns: updatedColumns })
           .catch(err => console.error("Failed to save column move:", err));
       }
@@ -250,6 +267,10 @@ const BoardPage = () => {
 
     // --- CARD DRAG END ---
     if (activeDrag.type === 'Card') {
+      // --- DEBUG ---
+      console.log('[DragEnd] Drag type is Card');
+      // --- END DEBUG ---
+      
       const startColumnId = activeDrag.data.columnId;
       const overIsCard = over.data.current?.type === 'Card';
       const overIsColumn = over.data.current?.type === 'Column';
@@ -265,12 +286,17 @@ const BoardPage = () => {
         endColumnId = over.data.current?.columnId;
         newIndex = activeBoard?.columns.find(c => c.id === endColumnId)?.cards.findIndex(c => c.id === overId) ?? 0;
       } else {
+        // --- DEBUG ---
+        console.log('[DragEnd] Exiting: "over" is not a Card or Column.');
+        // --- END DEBUG ---
         setActiveDrag(null);
         return;
       }
       
       if (startColumnId === undefined) {
-        console.error("Drag start column ID is undefined for a card.");
+        // --- DEBUG ---
+        console.error("[DragEnd] CRITICAL ERROR: startColumnId is undefined. Drag data:", activeDrag.data);
+        // --- END DEBUG ---
         setActiveDrag(null);
         return;
       }
@@ -279,10 +305,8 @@ const BoardPage = () => {
         .find(c => c.id === startColumnId)
         ?.cards.findIndex(c => c.id === activeId) ?? 0;
 
-      // 1. Optimistically update local state
       moveCard(activeId, startColumnId, endColumnId, oldIndex, newIndex);
 
-      // 2. Get the new state *after* the move
       const { activeBoard: newActiveBoard } = useBoardStore.getState();
       const startCol = newActiveBoard?.columns.find(c => c.id === startColumnId);
       const endCol = newActiveBoard?.columns.find(c => c.id === endColumnId);
@@ -303,10 +327,20 @@ const BoardPage = () => {
         })));
       }
       
-      // 3. Call the API to save the change
+      // --- DEBUG ---
+      console.log('[DragEnd] Card updates to be sent:', cardUpdates);
+      // --- END DEBUG ---
+      
       if (cardUpdates.length > 0) {
+        // --- DEBUG ---
+        console.log('[DragEnd] Sending CARD update API request...');
+        // --- END DEBUG ---
         api.put(`/api/columns/board/${boardId}/cards/order`, { cards: cardUpdates })
           .catch(err => console.error("Failed to save card move:", err));
+      } else {
+        // --- DEBUG ---
+        console.log('[DragEnd] No card updates to send.');
+        // --- END DEBUG ---
       }
     }
 
