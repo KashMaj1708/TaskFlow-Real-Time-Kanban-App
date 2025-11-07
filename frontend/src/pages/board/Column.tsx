@@ -11,7 +11,7 @@ import { Plus, Trash2, MoreHorizontal } from 'lucide-react';
 // --- DND IMPORTS ---
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useDroppable } from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core'; // <-- 1. IMPORT useDroppable
 
 // --- END DND IMPORTS ---
 
@@ -32,11 +32,14 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
   const sortedCards = column.cards || [];
   const cardIds = sortedCards.map(card => card.id);
   const deleteColumn = useBoardStore((state) => state.deleteColumn);
+  
   // --- DND HOOKS ---
+  
+  // 2. Setup useSortable for the *Column*
   const {
     attributes,
     listeners,
-    setNodeRef,
+    setNodeRef: setSortableNodeRef, // <-- Rename this ref
     transform,
     transition,
     isDragging,
@@ -52,7 +55,17 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+  
+  // 3. Setup useDroppable for the *Card List*
+  const { setNodeRef: setDroppableNodeRef } = useDroppable({
+    id: column.id, // <-- The drop zone ID is the column ID
+    data: {
+      type: 'Column', // We can identify it as a Column drop zone
+    },
+  });
+  
   // --- END DND HOOKS ---
+  
   const onDeleteColumn = async () => {
     // Add a confirmation
     if (window.confirm('Are you sure you want to delete this column and all its cards?')) {
@@ -89,7 +102,7 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setSortableNodeRef} // <-- 4. This ref is for the COLUMN DRAG
       style={style}
       className="lex flex-col flex-shrink-0 w-72 bg-gray-100 rounded-lg shadow-md overflow-hidden h-full"
     >
@@ -153,7 +166,10 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
 
       {/* Column Content (Card List) */}
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-        <div className="flex-grow p-2 overflow-y-auto min-h-[60px]">
+        <div 
+          ref={setDroppableNodeRef} // <-- 5. This ref is for the CARD DROP
+          className="flex-grow p-2 overflow-y-auto min-h-[60px]"
+        >
           {sortedCards.map((card) => (
             <Card 
               key={card.id} 
