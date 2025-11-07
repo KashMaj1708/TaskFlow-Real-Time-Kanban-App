@@ -16,16 +16,9 @@ const LoginPage = () => {
       });
 
       if (response.success) {
-        // --- THIS IS THE FIX ---
-        // The user is response.data
-        // The token is response.token
         setUser(response.data, response.token);
-        // --- END FIX ---
-        
-        // Redirect to dashboard
-        navigate('/'); // Make sure this route exists, or change to '/boards'
+        navigate('/'); 
       } else {
-        // Handle login error
         alert(response.message);
       }
     } catch (error) {
@@ -35,40 +28,50 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="w-full max-w-md p-8 space-y-6 bg-neutral-800 rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center text-white">
+    // --- CHANGED: Added bg-gray-100 ---
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      {/* --- CHANGED: bg-neutral-800 to bg-white --- */}
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-lg">
+        {/* --- CHANGED: text-white to text-neutral-900 --- */}
+        <h2 className="text-3xl font-bold text-center text-neutral-900">
           Welcome back to TaskFlow
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-neutral-300">Email</label>
+            {/* --- CHANGED: text-neutral-300 to text-neutral-600 --- */}
+            <label className="text-sm font-medium text-neutral-600">Email</label>
             <input
               type="email"
               {...register('email', { required: 'Email is required' })}
-              className="w-full px-3 py-2 mt-1 text-white bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              /* --- CHANGED: text, bg, and border colors --- */
+              className="w-full px-3 py-2 mt-1 text-neutral-900 bg-white border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message as string}</p>}
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-300">Password</label>
+            {/* --- CHANGED: text-neutral-300 to text-neutral-600 --- */}
+            <label className="text-sm font-medium text-neutral-600">Password</label>
             <input
               type="password"
               {...register('password', { required: 'Password is required' })}
-              className="w-full px-3 py-2 mt-1 text-white bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              /* --- CHANGED: text, bg, and border colors --- */
+              className="w-full px-3 py-2 mt-1 text-neutral-900 bg-white border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message as string}</p>}
           </div>
           <button
             type="submit"
-            className="w-full py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-neutral-800"
+            /* --- CHANGED: focus:ring-offset-neutral-800 to focus:ring-offset-white --- */
+            className="w-full py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white"
           >
             Log In
           </button>
         </form>
-        <p className="text-sm text-center text-neutral-400">
+        {/* --- CHANGED: text-neutral-400 to text-neutral-500 --- */}
+        <p className="text-sm text-center text-neutral-500">
           Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-blue-400 hover:underline">
+          {/* --- CHANGED: text-blue-400 to text-blue-600 --- */}
+          <Link to="/register" className="font-medium text-blue-600 hover:underline">
             Sign up
           </Link>
         </p>
