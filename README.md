@@ -48,40 +48,40 @@ Features (How to Use)
 
 Tech Stack Overview
 
-This project is a full-stack application with separate frontend and backend services.
+  This project is a full-stack application with separate frontend and backend services.
 
-Frontend (Deployed on Vercel)
+  Frontend (Deployed on Vercel)
 
-  Framework: React 18 with TypeScript
+    Framework: React 18 with TypeScript
 
-  Build Tool: Vite
+    Build Tool: Vite
 
-  Styling: Tailwind CSS
+    Styling: Tailwind CSS
 
-  State Management: Zustand (for simple, powerful global state)
+    State Management: Zustand (for simple, powerful global state)
 
-  Real-Time: Socket.IO Client
+    Real-Time: Socket.IO Client
 
-  Drag & Drop: @dnd-kit
+    Drag & Drop: @dnd-kit
 
-  Routing: React Router
+    Routing: React Router
 
-  Forms: React Hook Form
+    Forms: React Hook Form
 
-  Date Picker: react-datepicker
+    Date Picker: react-datepicker
 
 Backend (Deployed on Render)
 
-  Framework: Node.js with Express
-
-  Language: TypeScript
-
-  Database: PostgreSQL
-
-  Query Builder: Knex.js
-
-  Real-Time: Socket.IO
-
-  Authentication: JSON Web Tokens (JWT)
-
-  Schema Validation: Zod
+    Framework: Node.js with Express
+  
+    Language: TypeScript
+  
+    Database: PostgreSQL
+  
+    Query Builder: Knex.js
+  
+    Real-Time: Socket.IO
+  
+    Authentication: JSON Web Tokens (JWT)
+  
+    Schema Validation: Zod
