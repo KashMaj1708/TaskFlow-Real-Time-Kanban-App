@@ -91,12 +91,21 @@ export const createBoard = async (req: Request, res: Response) => {
   }
 };
 
+// --- THIS FUNCTION IS NOW FIXED ---
 export const inviteUserToBoard = async (req: Request, res: Response) => {
   try {
     const { boardId } = req.params;
-    const { email } = req.body;
+    const { userId: userIdToInvite } = req.body; // <-- 1. This now correctly expects 'userId'
+    const currentUserId = (req as any).user.id;
+
+    // 2. ADDED: Check if current user is the owner
+    const board = await db('boards').where({ id: boardId, owner_id: currentUserId }).first();
+    if (!board) {
+      return res.status(403).json({ success: false, message: 'Only the board owner can invite users' });
+    }
     
-    const user = await db('users').where({ email }).first();
+    // 3. Find the user to invite (by ID, not email)
+    const user = await db('users').where({ id: userIdToInvite }).first();
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -121,15 +130,53 @@ export const inviteUserToBoard = async (req: Request, res: Response) => {
       username: user.username,
       email: user.email,
       avatar_color: user.avatar_color,
+      role: 'member' // <-- 4. ADDED: Send the role back
     };
 
     // Socket event
     const io = req.app.get('io');
-    io.to(`board:${boardId}`).emit('member:joined', newMember);
+    io.to(`board:${boardId}`).emit('board:member:added', newMember); // <-- 5. Renamed event
 
     res.status(201).json({ success: true, data: newMember });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Error inviting user' });
+  }
+};
+
+// --- ADDED THIS MISSING FUNCTION ---
+export const removeUserFromBoard = async (req: Request, res: Response) => {
+  try {
+    const { boardId, userId: userIdToRemove } = req.params;
+    const currentUserId = (req as any).user.id;
+
+    // 1. Check if current user is the owner
+    const board = await db('boards').where({ id: boardId, owner_id: currentUserId }).first();
+    if (!board) {
+      return res.status(403).json({ success: false, message: 'Only the board owner can remove users' });
+    }
+
+    // 2. Owner cannot remove themselves
+    if (Number(userIdToRemove) === currentUserId) {
+      return res.status(400).json({ success: false, message: 'Owner cannot remove themselves' });
+    }
+
+    // 3. Delete the member
+    const deleted = await db('board_members')
+      .where({ board_id: boardId, user_id: userIdToRemove })
+      .del();
+
+    if (deleted === 0) {
+      return res.status(404).json({ success: false, message: 'Member not found on this board' });
+    }
+
+    // 4. Emit socket event
+    const io = req.app.get('io');
+    io.to(`board:${boardId}`).emit('board:member:removed', { userId: Number(userIdToRemove) });
+
+    res.json({ success: true, message: 'User removed' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Error removing user' });
   }
 };
