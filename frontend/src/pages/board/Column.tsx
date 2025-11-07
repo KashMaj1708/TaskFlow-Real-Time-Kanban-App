@@ -6,7 +6,7 @@ import { api } from '../../services/api';
 import { useBoardStore } from '../../store/boardStore';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { Plus, Trash2, MoreHorizontal, GripVertical } from 'lucide-react';
+import { Plus, Trash2, MoreHorizontal, GripVertical } from 'lucide-react'; // <-- 1. IMPORT GripVertical
 
 // --- DND IMPORTS ---
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -36,8 +36,8 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
   // --- DND HOOKS ---
   
   const {
-    attributes, // <-- We will apply this to the button
-    listeners,  // <-- We will apply this to the button
+    attributes,
+    listeners, 
     setNodeRef: setSortableNodeRef, 
     transform,
     transition,
@@ -105,7 +105,7 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
     >
       {/* Column Header */}
       <div
-        // <-- 1. REMOVED ...attributes FROM HERE
+        
         className="flex justify-between items-center p-3 border-b border-gray-200 relative" 
       >
         {/* Color Stripe (Top) - Placeholder */}
@@ -113,14 +113,11 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
 
         {/* --- DEDICATED COLUMN DRAG HANDLE --- */}
         <button
-          {...attributes} // <-- 2. ADDED attributes HERE
+        {...attributes} 
           {...listeners} 
           className="p-1 text-gray-400 hover:text-gray-800 cursor-grab active:cursor-grabbing"
-          onPointerDown={(e) => {
-            // This is needed to allow clicks on buttons inside to work
-            // But we must NOT stop propagation on the handle itself.
-            e.stopPropagation();
-          }}
+          // --- THIS IS THE FIX: ---
+          // --- REMOVED onPointerDown={(e) => e.stopPropagation()} ---
         >
           <GripVertical size={18} />
         </button>
@@ -152,6 +149,8 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
           <Trash2 size={16} />
         </Button>
       </div>
+
+      {/* --- THIS IS THE NEW STRUCTURE --- */}
 
       {/* Add Card Form/Button (Moved to top) */}
       <div className="p-2 border-b border-gray-200">
@@ -189,6 +188,8 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
           ))}
         </div>
       </SortableContext>
+      {/* --- END NEW STRUCTURE --- */}
+
     </div>
   );
 };
