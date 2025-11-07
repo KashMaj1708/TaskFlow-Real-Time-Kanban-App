@@ -10,41 +10,41 @@ This project was built to demonstrate a modern, full-stack architecture using Re
 
 Features (How to Use)
 
-User Authentication: Register for a new account and log in. The app uses a secure, token-based authentication system.
+  User Authentication: Register for a new account and log in. The app uses a secure, token-based authentication system.
 
-Board Dashboard: After logging in, you'll see your dashboard. You can create new boards, which will appear on this page.
+  Board Dashboard: After logging in, you'll see your dashboard. You can create new boards, which will appear on this page.
 
-Column & Card Creation: Click on a board to enter the board view. From here, you can add new columns ("To Do", "In Progress", etc.) and add new task cards to any column.
+  Column & Card Creation: Click on a board to enter the board view. From here, you can add new columns ("To Do", "In Progress", etc.) and add new       task cards to any column.
 
-Drag & Drop:
+  Drag & Drop:
 
-Cards: Drag and drop cards to re-order them within a column or move them to a different column.
+    Cards: Drag and drop cards to re-order them within a column or move them to a different column.
 
-Columns: Drag and drop entire columns to re-order the board's layout.
+    Columns: Drag and drop entire columns to re-order the board's layout.
 
-Real-Time Sync (The Core Feature):
+  Real-Time Sync (The Core Feature):
 
-Open the same board in two different browsers (or invite a friend).
+    Open the same board in two different browsers (or invite a friend).
 
-All changes—creating cards, editing tasks, dragging and dropping—will appear on the other user's screen instantly.
+    All changes—creating cards, editing tasks, dragging and dropping—will appear on the other user's screen instantly.
 
-Collaboration & Invites:
+  Collaboration & Invites:
 
-Click the "Members" button in the board header.
+    Click the "Members" button in the board header.
 
-You can search for other registered users by their username or email.
+    You can search for other registered users by their username or email.
 
-Invite them to your board. They will see the board appear on their dashboard in real-time.
+    Invite them to your board. They will see the board appear on their dashboard in real-time.
 
-Task Details: Click any card to open a modal. From here, you can:
+  Task Details: Click any card to open a modal. From here, you can:
 
-Edit the card's title.
+    Edit the card's title.
 
-Add a detailed description.
+    Add a detailed description.
 
-Assign the card to any member of the board.
+    Assign the card to any member of the board.
 
-Set a due date using the date picker.
+    Set a due date using the date picker.
 
 Tech Stack Overview
 
@@ -52,36 +52,36 @@ This project is a full-stack application with separate frontend and backend serv
 
 Frontend (Deployed on Vercel)
 
-Framework: React 18 with TypeScript
+  Framework: React 18 with TypeScript
 
-Build Tool: Vite
+  Build Tool: Vite
 
-Styling: Tailwind CSS
+  Styling: Tailwind CSS
 
-State Management: Zustand (for simple, powerful global state)
+  State Management: Zustand (for simple, powerful global state)
 
-Real-Time: Socket.IO Client
+  Real-Time: Socket.IO Client
 
-Drag & Drop: @dnd-kit
+  Drag & Drop: @dnd-kit
 
-Routing: React Router
+  Routing: React Router
 
-Forms: React Hook Form
+  Forms: React Hook Form
 
-Date Picker: react-datepicker
+  Date Picker: react-datepicker
 
 Backend (Deployed on Render)
 
-Framework: Node.js with Express
+  Framework: Node.js with Express
 
-Language: TypeScript
+  Language: TypeScript
 
-Database: PostgreSQL
+  Database: PostgreSQL
 
-Query Builder: Knex.js
+  Query Builder: Knex.js
 
-Real-Time: Socket.IO
+  Real-Time: Socket.IO
 
-Authentication: JSON Web Tokens (JWT)
+  Authentication: JSON Web Tokens (JWT)
 
-Schema Validation: Zod
+  Schema Validation: Zod
