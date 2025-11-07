@@ -1,6 +1,6 @@
 TaskFlow - Real-Time Collaborative Kanban Board
 
-Live Demo: https://task-flow-real-time-kanban-app.vercel.app/
+Live Demo: https://task-flow-real-time-kanban-app.vercel.app
 
 
 Note: The frontend (Vercel) loads instantly, but the backend (Render) is on a free tier. If the app is inactive, the first load or action (like logging in) may take 30-50 seconds for the server to "wake up."
