@@ -10,11 +10,17 @@ export const searchUsers = async (req: Request, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
+    // --- THIS IS THE FIX ---
+    // We update the query to check for email OR username
     const users = await db('users')
-      .where('email', 'like', `%${query}%`)
+      .where(function() {
+        this.where('email', 'like', `%${query}%`)
+            .orWhere('username', 'like', `%${query}%`); // <-- ADDED THIS
+      })
       .andWhereNot('id', currentUserId) // Don't include self
       .select('id', 'username', 'email', 'avatar_color')
       .limit(5);
+    // --- END FIX ---
       
     res.json({ success: true, data: users });
   } catch (err) {
