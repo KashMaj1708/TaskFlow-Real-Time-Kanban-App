@@ -6,12 +6,12 @@ import { api } from '../../services/api';
 import { useBoardStore } from '../../store/boardStore';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { Plus, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Trash2, MoreHorizontal, GripVertical } from 'lucide-react'; // <-- 1. IMPORT GripVertical
 
 // --- DND IMPORTS ---
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useDroppable } from '@dnd-kit/core'; // <-- 1. IMPORT useDroppable
+import { useDroppable } from '@dnd-kit/core'; 
 
 // --- END DND IMPORTS ---
 
@@ -35,11 +35,10 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
   
   // --- DND HOOKS ---
   
-  // 2. Setup useSortable for the *Column*
   const {
     attributes,
-    listeners,
-    setNodeRef: setSortableNodeRef, // <-- Rename this ref
+    listeners, // <-- 2. We will move listeners to a button
+    setNodeRef: setSortableNodeRef, 
     transform,
     transition,
     isDragging,
@@ -56,23 +55,21 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
     opacity: isDragging ? 0.5 : 1,
   };
   
-  // 3. Setup useDroppable for the *Card List*
   const { setNodeRef: setDroppableNodeRef } = useDroppable({
-    id: column.id, // <-- The drop zone ID is the column ID
+    id: column.id, 
     data: {
-      type: 'Column', // We can identify it as a Column drop zone
+      type: 'Column', 
     },
   });
   
   // --- END DND HOOKS ---
   
   const onDeleteColumn = async () => {
-    // Add a confirmation
     if (window.confirm('Are you sure you want to delete this column and all its cards?')) {
       try {
         const response = await api.delete(`/api/columns/${column.id}`);
         if (response.success) {
-          deleteColumn(column.id); // Update state
+          deleteColumn(column.id); 
         } else {
           alert(response.message || 'Failed to delete column');
         }
@@ -102,23 +99,33 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
 
   return (
     <div
-      ref={setSortableNodeRef} // <-- 4. This ref is for the COLUMN DRAG
+      ref={setSortableNodeRef} 
       style={style}
       className="lex flex-col flex-shrink-0 w-72 bg-gray-100 rounded-lg shadow-md overflow-hidden h-full"
     >
       {/* Column Header */}
       <div
-        {...attributes} // Dnd-kit drag handle attributes
-        {...listeners}  // Dnd-kit drag handle listeners
-        className="flex justify-between items-center p-3 border-b border-gray-200 cursor-grab active:cursor-grabbing relative"
+        {...attributes} // <-- 3. Keep attributes for accessibility
+        // ...but REMOVE listeners
+        className="flex justify-between items-center p-3 border-b border-gray-200 relative" // <-- 4. REMOVE cursor-grab
       >
         {/* Color Stripe (Top) - Placeholder */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-green-500"></div> 
 
-        <h3 className="font-semibold text-gray-800 flex-grow">
-      {column.title}
-      <span className="text-gray-500 text-sm ml-2">{column.cards.length}</span>
-    </h3>
+        {/* --- 5. ADDED DEDICATED COLUMN DRAG HANDLE --- */}
+        <button
+          {...listeners} // <-- 6. Listeners are ONLY on this button
+          className="p-1 text-gray-400 hover:text-gray-800 cursor-grab active:cursor-grabbing"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <GripVertical size={18} />
+        </button>
+        {/* --- END OF NEW HANDLE --- */}
+
+        <h3 className="font-semibold text-gray-800 flex-grow ml-1">
+          {column.title}
+          <span className="text-gray-500 text-sm ml-2">{column.cards.length}</span>
+        </h3>
 
         {/* Column Options Button */}
         <Button 
@@ -167,7 +174,7 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
       {/* Column Content (Card List) */}
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
         <div 
-          ref={setDroppableNodeRef} // <-- 5. This ref is for the CARD DROP
+          ref={setDroppableNodeRef} 
           className="flex-grow p-2 overflow-y-auto min-h-[60px]"
         >
           {sortedCards.map((card) => (
