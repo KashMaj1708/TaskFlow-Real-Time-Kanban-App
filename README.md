@@ -1,7 +1,7 @@
 TaskFlow - Real-Time Collaborative Kanban Board
 
 Live Demo: https://task-flow-real-time-kanban-app.vercel.app/
-
+Note: The frontend (Vercel) loads instantly, but the backend (Render) is on a free tier. If the app is inactive, the first load or action (like logging in) may take 30-50 seconds for the server to "wake up."
 Overview
 
 TaskFlow is a full-stack, real-time Kanban board application built from scratch. It's designed for seamless team collaboration, allowing multiple users to manage tasks, drag and drop cards, and see all updates instantly without a page refresh.
