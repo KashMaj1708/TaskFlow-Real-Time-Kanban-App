@@ -37,7 +37,7 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
   
   const {
     attributes,
-    listeners, // <-- 2. We will move listeners to a button
+    listeners, 
     setNodeRef: setSortableNodeRef, 
     transform,
     transition,
@@ -105,18 +105,18 @@ const Column: React.FC<ColumnProps> = ({ column, onCardClick }) => {
     >
       {/* Column Header */}
       <div
-        {...attributes} // <-- 3. Keep attributes for accessibility
-        // ...but REMOVE listeners
-        className="flex justify-between items-center p-3 border-b border-gray-200 relative" // <-- 4. REMOVE cursor-grab
+        {...attributes} 
+        className="flex justify-between items-center p-3 border-b border-gray-200 relative" 
       >
         {/* Color Stripe (Top) - Placeholder */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-green-500"></div> 
 
-        {/* --- 5. ADDED DEDICATED COLUMN DRAG HANDLE --- */}
+        {/* --- DEDICATED COLUMN DRAG HANDLE --- */}
         <button
-          {...listeners} // <-- 6. Listeners are ONLY on this button
+          {...listeners} 
           className="p-1 text-gray-400 hover:text-gray-800 cursor-grab active:cursor-grabbing"
-          onPointerDown={(e) => e.stopPropagation()}
+          // --- THIS IS THE FIX: ---
+          // --- REMOVED onPointerDown={(e) => e.stopPropagation()} ---
         >
           <GripVertical size={18} />
         </button>
