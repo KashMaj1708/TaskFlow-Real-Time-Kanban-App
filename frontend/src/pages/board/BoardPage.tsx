@@ -148,11 +148,13 @@ const BoardPage = () => {
     const onColumnDeleted = ({ columnId }: { columnId: number }) => removeColumn(columnId);
     const onMemberJoined = (newMember: BoardMember) => addMember(newMember);
     
-    const onColumnMoved = ({ columns }: { columns: { id: number, order: number }[] }) => {
+    const onColumnMoved = ({ columns, movedBy }: { columns: { id: number, order: number }[], movedBy: number }) => {
+      if (movedBy === user?.id) return; // Ignore our own events
       const columnPayload = columns.map(c => ({ id: c.id, position: c.order }));
       syncMovedColumn(columnPayload);
     };
-    const onCardMoved = ({ cards }: { cards: { id: number, order: number, column_id: number }[] }) => {
+    const onCardMoved = ({ cards, movedBy }: { cards: { id: number, order: number, column_id: number }[], movedBy: number }) => {
+       if (movedBy === user?.id) return; // Ignore our own events
       const cardPayload = cards.map(c => ({ id: c.id, position: c.order, column_id: c.column_id }));
       syncMovedCard(cardPayload);
     };
@@ -190,7 +192,7 @@ const BoardPage = () => {
     };
   }, [
       boardId, addCard, updateCardInStore, removeCard, addColumn, 
-      removeColumn, addMember, syncMovedColumn, syncMovedCard
+      removeColumn, addMember, syncMovedColumn, syncMovedCard, user?.id // Added user
     ]);
   // --- END SOCKET useEffect ---
 
@@ -233,15 +235,14 @@ const BoardPage = () => {
       const newIndex = activeBoard?.columns.findIndex(c => c.id === overId) ?? 0;
       moveColumn(oldIndex, newIndex); // This is your local store update
       
-      // 2. Get the new state
-      const updatedColumns = activeBoard?.columns.map((col, index) => ({
+      // 2. Get the new state *after* the move
+      const updatedColumns = useBoardStore.getState().activeBoard?.columns.map((col, index) => ({
         id: col.id,
-        order: index,
+        order: index, // Use 'order' as expected by the API
       }));
 
       // 3. Call the API to save the change
       if (updatedColumns) {
-        // --- THIS IS THE FIXED ROUTE ---
         api.put(`/api/columns/board/${boardId}/order`, { columns: updatedColumns })
           .catch(err => console.error("Failed to save column move:", err));
       }
@@ -281,11 +282,12 @@ const BoardPage = () => {
       // 1. Optimistically update local state
       moveCard(activeId, startColumnId, endColumnId, oldIndex, newIndex);
 
-      // 2. Get the new state
-      const startCol = activeBoard?.columns.find(c => c.id === startColumnId);
-      const endCol = activeBoard?.columns.find(c => c.id === endColumnId);
+      // 2. Get the new state *after* the move
+      const { activeBoard: newActiveBoard } = useBoardStore.getState();
+      const startCol = newActiveBoard?.columns.find(c => c.id === startColumnId);
+      const endCol = newActiveBoard?.columns.find(c => c.id === endColumnId);
       
-      const cardUpdates = [];
+      const cardUpdates: { id: number, order: number, column_id: number }[] = [];
       if (endCol) {
         cardUpdates.push(...endCol.cards.map((card, index) => ({
           id: card.id,
@@ -293,7 +295,6 @@ const BoardPage = () => {
           column_id: endCol.id,
         })));
       }
-      // If moved from a different column, update that one too
       if (startCol && startColumnId !== endColumnId) {
         cardUpdates.push(...startCol.cards.map((card, index) => ({
           id: card.id,
@@ -304,7 +305,6 @@ const BoardPage = () => {
       
       // 3. Call the API to save the change
       if (cardUpdates.length > 0) {
-        // --- THIS IS THE FIXED ROUTE ---
         api.put(`/api/columns/board/${boardId}/cards/order`, { cards: cardUpdates })
           .catch(err => console.error("Failed to save card move:", err));
       }
@@ -331,7 +331,7 @@ const BoardPage = () => {
       <div className="flex flex-col h-screen p-4 gap-4 text-neutral-900">
         
         {/* Board Header */}
-        <div className="flex-shrink-0 flex justify-between items-.center px-4">
+        <div className="flex-shrink-0 flex justify-between items-center px-4">
           {/* Left Side */}
           <div className="flex items-center gap-2">
             <Link to="/" className="text-neutral-400 hover:text-gray-700" title="Back to Dashboard">
