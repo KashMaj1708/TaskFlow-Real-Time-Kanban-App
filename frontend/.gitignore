@@ -9,6 +9,11 @@ lerna-debug.log*
 
 node_modules
 dist
+
+# Environment (do not commit API URL or secrets)
+.env
+.env.local
+.env.production
 dist-ssr
 *.local
 

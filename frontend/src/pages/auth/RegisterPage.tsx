@@ -17,14 +17,15 @@ const RegisterPage = () => {
       });
 
       if (response.success) {
-        // --- THIS IS THE FIX ---
-        // The user is response.data
-        // The token is response.token
-        setUser(response.data, response.token);
-        // --- END FIX ---
-        
-        // Redirect to dashboard
-        navigate('/');
+        const token = response.token;
+        if (!token) {
+          alert('Account created. Please log in to continue.');
+          navigate('/login');
+          return;
+        }
+        setUser(response.data, token);
+        // Wait for Zustand persist to write to localStorage before dashboard fetches
+        setTimeout(() => navigate('/'), 0);
       } else {
         // Handle different error types
         let errorMessage = 'Registration failed. Please try again.';
@@ -32,8 +33,7 @@ const RegisterPage = () => {
           // Server error or user-exists error
           errorMessage = response.message;
         } else if (response.errors && Array.isArray(response.errors)) {
-          // Validation errors
-          errorMessage = response.errors.map((err: any) => err.msg).join('\n');
+          errorMessage = response.errors.map((e: { message?: string }) => e.message || '').join('\n');
         }
         alert(errorMessage);
       }

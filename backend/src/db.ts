@@ -6,12 +6,18 @@ pg.types.setTypeParser(1114, (stringValue) => {
   return new Date(stringValue + 'Z');
 });
 
+const connectionConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL.includes('render.com')
+        ? { rejectUnauthorized: false }
+        : false,
+    }
+  : undefined;
+
 const db = knex({
   client: 'pg',
-  // --- THIS IS THE FIX ---
-  // Use the DATABASE_URL string directly
-  connection: process.env.DATABASE_URL,
-  // --- END FIX ---
+  connection: connectionConfig,
   pool: { min: 2, max: 10 },
 });
 

@@ -126,10 +126,17 @@ export const getCardWithDetails = async (cardId: number) => {
 
   if (!card) return null;
 
-  const labels = await db('labels')
-    .join('card_labels', 'labels.id', 'card_labels.label_id')
-    .where('card_labels.card_id', cardId)
-    .select('labels.id', 'labels.text', 'labels.color');
+  // Labels are stored as JSONB on the card (schema: cards.labels), not in separate tables
+  let labels: { id?: number; text?: string; color?: string }[] = [];
+  if (Array.isArray(card.labels)) {
+    labels = card.labels;
+  } else if (typeof card.labels === 'string') {
+    try {
+      labels = JSON.parse(card.labels) || [];
+    } catch {
+      labels = [];
+    }
+  }
 
   const assigned_user = card.assigned_user_id
     ? {

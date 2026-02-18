@@ -50,28 +50,38 @@ export const register = async (req: Request, res: Response) => {
       })
       .returning(['id', 'username', 'email', 'avatar_color']);
 
+    const token = jwt.sign(
+      { id: newUser.id, username: newUser.username },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       data: newUser,
+      token,
     });
   } catch (err) {
-    // --- THIS IS THE UPDATED CATCH BLOCK ---
     if (err instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: err.issues });
+      const messages = err.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+      return res.status(400).json({ success: false, message: messages.join('; '), errors: err.issues });
     }
-    // Handle unique constraint error (e.g., email already exists)
-    if ((err as any).code === '23505') {
+    // PostgreSQL unique violation (Knex may expose code on err or err.original)
+    const code = (err as any)?.code ?? (err as any)?.original?.code;
+    if (code === '23505') {
       return res.status(409).json({ success: false, message: 'Email or username already exists' });
     }
-    console.error(err);
-    // Handle 'unknown' type error
-    if (err instanceof Error) {
-      res.status(500).json({ success: false, message: err.message });
-    } else {
-      res.status(500).json({ success: false, message: 'An unknown internal server error occurred' });
+    // Database connection / missing table - return a clear message
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    if (msg.includes('connect') || msg.includes('ECONNREFUSED') || msg.includes('does not exist') || msg.includes('relation "users"')) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database unavailable. Check that PostgreSQL is running, DATABASE_URL is set in backend .env, and you have run backend/src/sql/schema.sql to create the tables.',
+      });
     }
-    // --- END UPDATE ---
+    console.error(err);
+    return res.status(500).json({ success: false, message: err instanceof Error ? err.message : 'An unknown internal server error occurred' });
   }
 };
 

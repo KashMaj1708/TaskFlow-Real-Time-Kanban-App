@@ -16,8 +16,13 @@ const LoginPage = () => {
       });
 
       if (response.success) {
-        setUser(response.data, response.token);
-        navigate('/'); 
+        const token = response.token;
+        if (!token) {
+          alert('Login failed: no token received.');
+          return;
+        }
+        setUser(response.data, token);
+        setTimeout(() => navigate('/'), 0);
       } else {
         alert(response.message);
       }
