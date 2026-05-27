@@ -41,6 +41,9 @@ const LoginPage = () => {
         <h2 className="text-3xl font-bold text-center text-neutral-900">
           Welcome back to TaskFlow
         </h2>
+        <p className="text-sm text-center text-neutral-600">
+          For testing, sign in with user emails "tu_1@gmail.com" and "tu_2@gmail.com" in separate windows, both using the password "12345678".
+        </p>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             {/* --- CHANGED: text-neutral-300 to text-neutral-600 --- */}
