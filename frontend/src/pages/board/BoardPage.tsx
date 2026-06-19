@@ -13,7 +13,6 @@ import CardDetailsModal from '../../components/board/CardDetailsModal';
 // --- DND IMPORTS ---
 import {
   DndContext,
-  closestCorners,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -148,12 +147,12 @@ const BoardPage = () => {
     const onColumnDeleted = ({ columnId }: { columnId: number }) => removeColumn(columnId);
     const onMemberJoined = (newMember: BoardMember) => addMember(newMember);
     
-    const onColumnMoved = ({ columns, movedBy }: { columns: { id: number, order: number }[], movedBy: number }) => {
+    const onColumnMoved = ({ columns, movedBy }: { columns: { id: number, order: number }[], movedBy: string }) => {
       if (movedBy === user?.id) return; // Ignore our own events
       const columnPayload = columns.map(c => ({ id: c.id, position: c.order }));
       syncMovedColumn(columnPayload);
     };
-    const onCardMoved = ({ cards, movedBy }: { cards: { id: number, order: number, column_id: number }[], movedBy: number }) => {
+    const onCardMoved = ({ cards, movedBy }: { cards: { id: number, order: number, column_id: number }[], movedBy: string }) => {
        if (movedBy === user?.id) return; // Ignore our own events
       const cardPayload = cards.map(c => ({ id: c.id, position: c.order, column_id: c.column_id }));
       syncMovedCard(cardPayload);

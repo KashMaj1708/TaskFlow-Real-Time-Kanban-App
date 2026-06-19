@@ -1,27 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { auth } from '../firebase';
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  // --- 1. GET TOKEN FROM AUTHORIZATION HEADER ---
+/**
+ * Verifies the Firebase ID token sent in the Authorization header.
+ * On success attaches `req.user = { id: <firebase uid>, email, username }`.
+ *
+ * NOTE: `id` is the Firebase UID (a string). The rest of the codebase reads
+ * `req.user.id`, so it keeps working unchanged - only the underlying type
+ * changed from number to string.
+ */
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  // The header format is "Bearer TOKEN"
-  const token = authHeader && authHeader.split(' ')[1];
-  // --- END CHANGE ---
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
   if (!token) {
-    // Removing the debug console.log
     return res.status(401).json({ success: false, message: 'Unauthorized: No token provided' });
   }
 
   try {
-    // Removing the debug console.log
-    // Verify the token and get the payload
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    
-    // Attach the payload (which should be { id: ..., username: ... }) to the request
-    (req as any).user = decoded; 
-    
-    // Continue to the next function (the controller)
+    const decoded = await auth.verifyIdToken(token);
+    (req as any).user = {
+      id: decoded.uid,
+      email: decoded.email,
+      // Best-effort username; the canonical value lives in the users table and
+      // is set/kept fresh by the syncUser middleware.
+      username: decoded.email ? decoded.email.split('@')[0] : undefined,
+    };
     next();
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Unauthorized: Invalid token' });

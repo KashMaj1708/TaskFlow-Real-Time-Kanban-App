@@ -1,45 +1,22 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
-import { api } from '../../services/api';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 const RegisterPage = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const setUser = useAuthStore((state) => state.setUser);
   const navigate = useNavigate();
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await api.post('/api/auth/register', {
-        username: data.username,
-        email: data.email,
-        password: data.password,
-      });
-
-      if (response.success) {
-        const token = response.token;
-        if (!token) {
-          alert('Account created. Please log in to continue.');
-          navigate('/login');
-          return;
-        }
-        setUser(response.data, token);
-        // Wait for Zustand persist to write to localStorage before dashboard fetches
-        setTimeout(() => navigate('/'), 0);
-      } else {
-        // Handle different error types
-        let errorMessage = 'Registration failed. Please try again.';
-        if (response.message) {
-          // Server error or user-exists error
-          errorMessage = response.message;
-        } else if (response.errors && Array.isArray(response.errors)) {
-          errorMessage = response.errors.map((e: { message?: string }) => e.message || '').join('\n');
-        }
-        alert(errorMessage);
-      }
-    } catch (error) {
+      // Firebase creates the account. The local users-table row is created on
+      // the first authenticated API call (syncUser on the backend), with a
+      // username derived from the email. onAuthStateChanged handles the rest.
+      await createUserWithEmailAndPassword(auth, data.email, data.password);
+      navigate('/');
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      alert('Registration failed. Please try again.');
+      alert(error?.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -50,15 +27,6 @@ const RegisterPage = () => {
           Create your TaskFlow Account
         </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div>
-            <label className="text-sm font-medium text-neutral-300">Username</label>
-            <input
-              type="text"
-              {...register('username', { required: 'Username is required' })}
-              className="w-full px-3 py-2 mt-1 text-white bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username.message as string}</p>}
-          </div>
           <div>
             <label className="text-sm font-medium text-neutral-300">Email</label>
             <input
@@ -72,7 +40,7 @@ const RegisterPage = () => {
           <label className="text-sm font-medium text-neutral-300">Password</label>
             <input
               type="password"
-              {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Password must be at least 8 characters' } })}
+              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Password must be at least 6 characters' } })}
               className="w-full px-3 py-2 mt-1 text-white bg-neutral-700 border border-neutral-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message as string}</p>}

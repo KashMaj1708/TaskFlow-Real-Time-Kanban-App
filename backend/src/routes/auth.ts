@@ -1,12 +1,13 @@
 import { Router } from 'express';
-import { register, login, getMe, logout } from '../controllers/authController';
+import { getMe } from '../controllers/authController';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { syncUser } from '../middleware/syncUser';
 
 const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.get('/me', authMiddleware, getMe);
-router.post('/logout', logout);
+// Registration/login/logout are handled by Firebase Auth on the client.
+// The only auth endpoint the backend still needs is "who am I", which also
+// mirrors the Firebase user into our local users table via syncUser.
+router.get('/me', authMiddleware, syncUser, getMe);
 
 export default router;

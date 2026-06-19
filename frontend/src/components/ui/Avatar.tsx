@@ -1,5 +1,4 @@
 import React from 'react';
-import { type User } from '../../types'; // We'll need this import
 
 interface AvatarProps {
   // This accepts any object with at least a username and avatar_color

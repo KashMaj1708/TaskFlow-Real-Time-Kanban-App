@@ -1,6 +1,6 @@
-// From our auth setup
+// From our auth setup. `id` is the Firebase UID (a string).
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   avatar_color: string;
@@ -29,14 +29,14 @@ export interface Card {
   created_at: string; // <-- ADDED
   board_id: number;   // <-- ADDED
   
-  // This is the property name from your original file
-  created_by: number; // <-- RENAMED from created_by
+  // User who created the card (Firebase UID)
+  created_by: string;
   
   // This is the full user object from the JOIN
   assigned_user: BoardMember | null; // <-- CHANGED from AssignedUser
 
-  // This is the raw ID we use for updates
-  assigned_user_id: number | null; // <-- ADDED
+  // This is the raw ID we use for updates (Firebase UID)
+  assigned_user_id: string | null;
 }
 
 export interface Column {
@@ -50,7 +50,7 @@ export interface Board {
   id: number;
   title: string;
   description: string | null;
-  owner_id: number;
+  owner_id: string;
   members: BoardMember[];
   columns: Column[];
 }

@@ -4,8 +4,14 @@
 
 # Environment
 .env
+.env.*
 .env.local
 .env.production
+
+# Firebase / service account credentials (NEVER commit these)
+*firebase-adminsdk*.json
+*service-account*.json
+serviceAccount*.json
 
 # Logs
 npm-debug.log*

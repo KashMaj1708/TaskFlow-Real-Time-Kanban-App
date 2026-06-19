@@ -48,7 +48,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({ cardId, onClose }) 
   }, [members, card?.assigned_user]);
 
   // Generic debounce timer for API calls
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // If card is deleted or not found, close the modal
   if (!card) {
@@ -99,7 +99,7 @@ const CardDetailsModal: React.FC<CardDetailsModalProps> = ({ cardId, onClose }) 
   };
 
   const handleAssignMember = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const userId = e.target.value === 'none' ? null : Number(e.target.value);
+    const userId = e.target.value === 'none' ? null : e.target.value;
     handleUpdate('assigned_user_id', userId);
   };
   

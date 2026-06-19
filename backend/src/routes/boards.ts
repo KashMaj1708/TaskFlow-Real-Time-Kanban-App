@@ -7,9 +7,10 @@ import {
   removeUserFromBoard, // <-- 1. Import the new function
 } from '../controllers/boardController';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { syncUser } from '../middleware/syncUser';
 
 const router = Router();
-router.use(authMiddleware); // All board routes are protected
+router.use(authMiddleware, syncUser); // All board routes are protected
 
 router.get('/', getBoards);
 router.post('/', createBoard);

@@ -1,9 +1,11 @@
 -- Users table
+-- NOTE: After migrating to Firebase Auth, the primary key is the Firebase UID
+-- (a string), not an auto-increment integer. Firebase owns passwords now, so
+-- there is no password_hash column anymore.
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(128) PRIMARY KEY, -- Firebase UID
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
     avatar_color VARCHAR(7) DEFAULT '#3B82F6', -- For presence indicators
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -14,7 +16,7 @@ CREATE TABLE boards (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    owner_id VARCHAR(128) REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -23,7 +25,7 @@ CREATE TABLE boards (
 CREATE TABLE board_members (
     id SERIAL PRIMARY KEY,
     board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(128) REFERENCES users(id) ON DELETE CASCADE,
     role VARCHAR(20) DEFAULT 'member', -- 'owner', 'member'
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(board_id, user_id)
@@ -46,10 +48,10 @@ CREATE TABLE cards (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     position INTEGER NOT NULL, -- For ordering within column
-    assigned_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    assigned_user_id VARCHAR(128) REFERENCES users(id) ON DELETE SET NULL,
     due_date TIMESTAMP,
     labels JSONB DEFAULT '[]', -- Array of label objects: [{"color": "#FF0000", "text": "urgent"}]
-    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_by VARCHAR(128) REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -57,7 +59,7 @@ CREATE TABLE cards (
 -- Active presence table (who's currently on which board)
 CREATE TABLE active_presence (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(128) REFERENCES users(id) ON DELETE CASCADE,
     board_id INTEGER REFERENCES boards(id) ON DELETE CASCADE,
     socket_id VARCHAR(255) NOT NULL,
     last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -68,7 +70,7 @@ CREATE TABLE active_presence (
 CREATE TABLE card_locks (
     id SERIAL PRIMARY KEY,
     card_id INTEGER REFERENCES cards(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(128) REFERENCES users(id) ON DELETE CASCADE,
     locked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(card_id) -- Only one user can lock a card at a time
 );

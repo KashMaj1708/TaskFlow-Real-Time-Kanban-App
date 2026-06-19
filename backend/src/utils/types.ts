@@ -1,10 +1,11 @@
 import { Request } from 'express';
 
-// Define the shape of the user payload stored in the JWT
+// Shape of the user we attach to requests/sockets after verifying a Firebase
+// ID token. `id` is the Firebase UID (a string).
 export interface UserPayload {
-  userId: number;
-  username: string;
-  email: string;
+  id: string;
+  email?: string;
+  username?: string;
 }
 
 // Extend the Express Request interface to include the 'user' property

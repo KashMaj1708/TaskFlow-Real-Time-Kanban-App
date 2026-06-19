@@ -23,7 +23,7 @@ interface BoardState {
   addCard: (card: Card) => void;
   deleteCard: (cardId: number, columnId: number) => void;
   addMember: (member: BoardMember) => void;
-  removeMember: (userId: number) => void;
+  removeMember: (userId: string) => void;
   moveColumn: (dragIndex: number, hoverIndex: number) => void;
   moveCard: (
     cardId: number,

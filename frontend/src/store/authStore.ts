@@ -1,51 +1,41 @@
 import create from 'zustand'
-import { persist } from 'zustand/middleware'
 
-// Define the shape of the user object
+// User profile mirrored from our backend (`/api/auth/me`). `id` is the Firebase
+// UID (a string).
 interface User {
-  id: number
+  id: string
   username: string
   email: string
   avatar_color: string
 }
 
-// Define the state shape
 interface AuthState {
   user: User | null
-  token: string | null
+  // True until Firebase's onAuthStateChanged has fired at least once. Used to
+  // avoid redirecting to /login before we know whether a session exists.
+  loading: boolean
   isAuthenticated: boolean
-  setUser: (user: User, token: string) => void
-  logout: () => void
+  setUser: (user: User | null) => void
+  setLoading: (loading: boolean) => void
+  reset: () => void
 }
 
-// Create the store
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
+export const useAuthStore = create<AuthState>()((set) => ({
+  user: null,
+  loading: true,
+  isAuthenticated: false,
 
-      // Action: Set user and token (on login/register)
-      setUser: (user, token) => {
-        set({
-          user,
-          token,
-          isAuthenticated: true,
-        })
-      },
-
-      // Action: Clear user and token (on logout)
-      logout: () => {
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        })
-      },
+  setUser: (user) =>
+    set({
+      user,
+      isAuthenticated: !!user,
     }),
-    {
-      name: 'auth-storage', // Key for localStorage
-    }
-  )
-)
+
+  setLoading: (loading) => set({ loading }),
+
+  reset: () =>
+    set({
+      user: null,
+      isAuthenticated: false,
+    }),
+}))

@@ -1,34 +1,21 @@
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
-import { api } from '../../services/api';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../firebase';
 
 const LoginPage = () => {
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const setUser = useAuthStore((state) => state.setUser);
   const navigate = useNavigate();
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await api.post('/api/auth/login', {
-        email: data.email,
-        password: data.password,
-      });
-
-      if (response.success) {
-        const token = response.token;
-        if (!token) {
-          alert('Login failed: no token received.');
-          return;
-        }
-        setUser(response.data, token);
-        setTimeout(() => navigate('/'), 0);
-      } else {
-        alert(response.message);
-      }
-    } catch (error) {
+      // Firebase signs the user in. onAuthStateChanged (useAuthListener) then
+      // loads the profile and updates the store, so we just navigate.
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+      navigate('/');
+    } catch (error: any) {
       console.error('Login failed:', error);
-      alert('Login failed. Please check your credentials.');
+      alert(error?.message || 'Login failed. Please check your credentials.');
     }
   };
 

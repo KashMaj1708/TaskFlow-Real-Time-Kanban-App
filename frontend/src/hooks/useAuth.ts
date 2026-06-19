@@ -1,15 +1,18 @@
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { useAuthStore } from '../store/authStore';
 
 export const useAuth = () => {
-  const { user, token, isAuthenticated, setUser, logout } = useAuthStore();
+  const { user, isAuthenticated, loading } = useAuthStore();
 
-  // You can add more complex logic here later, e.g., auto-logout on token expiry
-  
+  // Signing out of Firebase triggers onAuthStateChanged, which clears the store
+  // (see useAuthListener). Components just call this.
+  const logout = () => signOut(auth);
+
   return {
     user,
-    token,
     isAuthenticated,
-    setUser,
+    loading,
     logout,
   };
 };

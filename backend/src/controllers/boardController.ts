@@ -157,7 +157,7 @@ export const removeUserFromBoard = async (req: Request, res: Response) => {
     }
 
     // 2. Owner cannot remove themselves
-    if (Number(userIdToRemove) === currentUserId) {
+    if (userIdToRemove === currentUserId) {
       return res.status(400).json({ success: false, message: 'Owner cannot remove themselves' });
     }
 
@@ -172,7 +172,7 @@ export const removeUserFromBoard = async (req: Request, res: Response) => {
 
     // 4. Emit socket event
     const io = req.app.get('io');
-    io.to(`board:${boardId}`).emit('board:member:removed', { userId: Number(userIdToRemove) });
+    io.to(`board:${boardId}`).emit('board:member:removed', { userId: userIdToRemove });
 
     res.json({ success: true, message: 'User removed' });
   } catch (err) {

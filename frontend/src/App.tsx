@@ -1,9 +1,12 @@
 import { Outlet } from 'react-router-dom'
+import { useAuthListener } from './hooks/useAuthListener'
 
 function App() {
+  // Subscribe to Firebase auth state for the whole app.
+  useAuthListener()
+
   return (
     <div className="min-h-screen">
-      {/* We will add a Header/Navbar component here later */}
       <main>
         <Outlet />
       </main>

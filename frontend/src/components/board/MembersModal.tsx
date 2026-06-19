@@ -45,7 +45,7 @@ const MembersModal: React.FC<MembersModalProps> = ({ onClose }) => {
     return () => clearTimeout(delayDebounce);
   }, [search, activeBoard?.members]);
 
-  const handleInvite = async (userId: number) => {
+  const handleInvite = async (userId: string) => {
     if (!activeBoard) return;
     try {
       const response = await api.post(`/api/boards/${activeBoard.id}/invite`, { userId });
@@ -61,7 +61,7 @@ const MembersModal: React.FC<MembersModalProps> = ({ onClose }) => {
     }
   };
 
-  const handleRemove = async (userId: number) => {
+  const handleRemove = async (userId: string) => {
     if (!activeBoard) return;
     if (userId === activeBoard.owner_id) return; // Should be impossible
     if (!window.confirm('Are you sure you want to remove this member?')) return;

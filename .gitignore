@@ -1,0 +1,32 @@
+# Repo-wide safety net for secrets and build artifacts.
+# Each app also has its own .gitignore.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment files (secrets, API keys, DB URLs)
+.env
+.env.*
+*.local
+
+# Firebase / service account credentials (NEVER commit these)
+*firebase-adminsdk*.json
+*service-account*.json
+serviceAccount*.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor/OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

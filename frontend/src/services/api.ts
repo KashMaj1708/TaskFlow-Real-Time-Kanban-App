@@ -1,17 +1,18 @@
-import { useAuthStore } from '../store/authStore'; // Keep this, it's fine
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
+import { useAuthStore } from '../store/authStore';
 
 // Get the API base URL (fallback for local dev when .env is missing)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Helper to get the token from the Zustand persisted store (localStorage)
-const getAuthToken = (): string | null => {
+// Get a fresh Firebase ID token. getIdToken() automatically refreshes the token
+// if it has expired (Firebase ID tokens last 1 hour), so we call it per request
+// rather than caching.
+const getAuthToken = async (): Promise<string | null> => {
+  const user = auth.currentUser;
+  if (!user) return null;
   try {
-    const authStorage = localStorage.getItem('auth-storage');
-    if (!authStorage) return null;
-    const parsed = JSON.parse(authStorage);
-    // Zustand persist can store as { state: {...} } or sometimes just the state
-    const token = parsed?.state?.token ?? parsed?.token ?? null;
-    return token && typeof token === 'string' ? token : null;
+    return await user.getIdToken();
   } catch {
     return null;
   }
@@ -19,7 +20,7 @@ const getAuthToken = (): string | null => {
 
 // Base function for fetch with auth
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-  const token = getAuthToken(); // This now reads from localStorage
+  const token = await getAuthToken();
   const headers = new Headers(options.headers || {
     'Content-Type': 'application/json',
   });
@@ -36,9 +37,10 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     headers,
   });
 
-  // If unauthorized, clear auth so user is sent to login (fixes stale/missing token)
+  // If unauthorized, sign out so the user is sent to login
   if (response.status === 401) {
-    useAuthStore.getState().logout();
+    await signOut(auth).catch(() => {});
+    useAuthStore.getState().reset();
     window.location.href = '/login';
     return Promise.reject(new Error('Unauthorized'));
   }
@@ -53,7 +55,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   return response.json();
 };
 
-// Our new API client object
+// Our API client object
 export const api = {
   get: async (url: string) => {
     return fetchWithAuth(url, { method: 'GET' });

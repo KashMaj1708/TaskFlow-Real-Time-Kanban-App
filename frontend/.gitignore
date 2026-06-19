@@ -12,10 +12,16 @@ dist
 
 # Environment (do not commit API URL or secrets)
 .env
+.env.*
 .env.local
 .env.production
 dist-ssr
 *.local
+
+# Firebase / service account credentials (NEVER commit these)
+*firebase-adminsdk*.json
+*service-account*.json
+serviceAccount*.json
 
 # Editor directories and files
 .vscode/*

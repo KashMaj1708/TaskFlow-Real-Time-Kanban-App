@@ -55,7 +55,7 @@ export const updateCard = async (req: Request, res: Response) => {
       title?: string;
       description?: string;
       due_date?: string | null;
-      assigned_user_id?: number | null;
+      assigned_user_id?: string | null;
     } = {};
 
     if (title !== undefined) updateData.title = title;

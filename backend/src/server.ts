@@ -2,12 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-// --- 1. DELETE COOKIE IMPORTS ---
-// import cookieParser from 'cookie-parser';
-// import cookie from 'cookie';
-// --- END DELETE ---
 import 'dotenv/config';
-import jwt from 'jsonwebtoken';
+import { auth } from './firebase';
 
 // --- ROUTE IMPORTS ---
 import authRoutes from './routes/auth';
@@ -27,24 +23,25 @@ const io = new Server(httpServer, {
   },
 });
 
-// --- 2. UPDATE SOCKET.IO MIDDLEWARE ---
-io.use((socket, next) => {
+// --- SOCKET.IO AUTH: verify Firebase ID token ---
+// Firebase ID tokens expire after one hour. The client refreshes the token via
+// getIdToken() on every (re)connection, so reconnects pick up a fresh token.
+io.use(async (socket, next) => {
   try {
-    // Read token from the 'auth' payload sent by the client
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake.auth?.token;
 
     if (!token) {
       return next(new Error('Authentication error: No token provided'));
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-    (socket as any).user = decoded; // Attach user to the socket object
+    const decoded = await auth.verifyIdToken(token);
+    (socket as any).user = { id: decoded.uid, email: decoded.email };
     next();
   } catch (err) {
     return next(new Error('Authentication error: Invalid token'));
   }
 });
-// --- END UPDATE ---
+// --- END SOCKET.IO AUTH ---
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
